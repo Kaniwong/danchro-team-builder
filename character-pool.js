@@ -16,9 +16,9 @@ const characters = {
     { name: "2411739626660_.pic_hd_03", img: "adventurers/2411739626660_.pic_hd_03.jpg", role: "adventurer", baseName: "03" },
     { name: "2411739626660_.pic_hd_07", img: "adventurers/2411739626660_.pic_hd_07.jpg", role: "adventurer", baseName: "07" },
     { name: "2411739626660_.pic_hd_10", img: "adventurers/2411739626660_.pic_hd_10.jpg", role: "adventurer", baseName: "10" },
-    { name: "sr_wind_speed_駆け出し冒険者_ベル・クラネル", img: "adventurers/sr_wind_speed_駆け出し冒険者_ベル・クラネル.jpg", role: "adventurer", baseName: "ベル・クラネル" },
-    { name: "ur_wind_attack_剣姫_アイズ・ヴァレンシュタイン", img: "adventurers/ur_wind_attack_剣姫_アイズ・ヴァレンシュタイン.jpg", role: "adventurer", rarity: "UR", attribute: "WIND", roleType: "ATTACK", baseName: "アイズ・ヴァレンシュタイン" },
-    { name: "ur_wind_attack_英雄の雛鳥_ベル・クラネル", img: "adventurers/ur_wind_attack_英雄の雛鳥_ベル・クラネル.jpg", role: "adventurer", rarity: "UR", attribute: "WIND", roleType: "ATTACK", baseName: "ベル・クラネル" },
+    { name: "sr_wind_speed_novice_adventurer_bell_cranel", img: "adventurers/sr_wind_speed_novice_adventurer_bell_cranel.jpg", role: "adventurer", baseName: "cranel" },
+    { name: "ur_wind_attack_fledgling_hero_bell_cranel", img: "adventurers/ur_wind_attack_fledgling_hero_bell_cranel.jpg", role: "adventurer", rarity: "UR", attribute: "WIND", roleType: "ATTACK", baseName: "cranel" },
+    { name: "ur_wind_attack_sword_princess_ais_wallenstein", img: "adventurers/ur_wind_attack_sword_princess_ais_wallenstein.jpg", role: "adventurer", rarity: "UR", attribute: "WIND", roleType: "ATTACK", baseName: "wallenstein" },
   ],
   supporters: [
     { name: "20250215213916_03", img: "supporters/20250215213916_03.jpg", role: "supporter", baseName: "03" },
@@ -43,6 +43,6 @@ const characters = {
     { name: "2381739626655_.pic_hd_03", img: "supporters/2381739626655_.pic_hd_03.jpg", role: "supporter", baseName: "03" },
     { name: "2381739626655_.pic_hd_09", img: "supporters/2381739626655_.pic_hd_09.jpg", role: "supporter", baseName: "09" },
     { name: "2381739626655_.pic_hd_11", img: "supporters/2381739626655_.pic_hd_11.jpg", role: "supporter", baseName: "11" },
-    { name: "ur_wind_attack_極風剣姫_アイズ・ヴァレンシュタイン", img: "supporters/ur_wind_attack_極風剣姫_アイズ・ヴァレンシュタイン.jpg", role: "supporter", rarity: "UR", attribute: "WIND", roleType: "ATTACK", baseName: "アイズ・ヴァレンシュタイン" },
+    { name: "ur_wind_attack_supreme_gale_sword_princess_ais_wallenstein", img: "supporters/ur_wind_attack_supreme_gale_sword_princess_ais_wallenstein.jpg", role: "supporter", rarity: "UR", attribute: "WIND", roleType: "ATTACK", baseName: "wallenstein" },
   ]
 };
