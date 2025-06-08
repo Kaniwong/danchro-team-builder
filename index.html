@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>角色编队工具</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f7f7f7; }
+    h2 { margin-top: 30px; }
+    .pool-group { margin-bottom: 20px; }
+    .character-pool, .team-row {
+      display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0;
+    }
+    .character, .slot {
+      width: 80px; height: 80px; border: 2px dashed #ccc; border-radius: 10px;
+      background-color: white; display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .character img, .slot img { max-width: 100%; max-height: 100%; }
+    .character.dragging { opacity: 0.5; }
+    .used { opacity: 0.3; pointer-events: none; }
+    .team-container {
+      margin-bottom: 20px; padding: 10px; background: #fff;
+      border: 1px solid #ccc; border-radius: 6px;
+    }
+    .team-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .team-label { font-weight: bold; outline: none; }
+    button { margin-left: 6px; cursor: pointer; }
+    #filters button { margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <h1>角色编队工具</h1>
+
+  <div id="filters">
+    <strong>筛选：</strong>
+    稀有度：
+    <button onclick="toggleFilter('rarity', 'SR')">SR</button>
+    <button onclick="toggleFilter('rarity', 'SSR')">SSR</button>
+    <button onclick="toggleFilter('rarity', 'UR')">UR</button>
+    属性：
+    <button onclick="toggleFilter('attribute', 'FIRE')">Fire</button>
+    <button onclick="toggleFilter('attribute', 'WIND')">Wind</button>
+    <button onclick="toggleFilter('attribute', 'EARTH')">Earth</button>
+    <button onclick="toggleFilter('attribute', 'ELECTRIC')">Electric</button>
+    <button onclick="toggleFilter('attribute', 'WATER')">Water</button>
+    定位：
+    <button onclick="toggleFilter('roleType', 'ATTACK')">Attack</button>
+    <button onclick="toggleFilter('roleType', 'DEFENSE')">Defense</button>
+    <button onclick="toggleFilter('roleType', 'SPEED')">Speed</button>
+    <button onclick="toggleFilter('roleType', 'SUPPORT')">Support</button>
+    <button onclick="resetFilters()">重置</button>
+  </div>
+
+  <div class="pool-group">
+    <h2>冒险者</h2>
+    <div class="character-pool" id="adventurers"></div>
+  </div>
+
+  <div class="pool-group">
+    <h2>支援者</h2>
+    <div class="character-pool" id="supporters"></div>
+  </div>
+
+  <h2>队伍编队</h2>
+  <div id="teams"></div>
+  <button onclick="addTeam()">添加新队伍</button>
+  <button onclick="exportConfig()">📤 导出</button>
+  <input type="file" accept="application/json" onchange="importConfig(event)" />
+
+  <script src="character-pool.js"></script>
+  <script>
+    let teamCounter = 0;
+    const availableTeamNumbers = [];
+    const usedNames = new Set();
+    const slotMap = new Map();
+    const activeFilters = { rarity: null, attribute: null, roleType: null };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      renderPool();
+      loadFromLocal();
+    });
+
+    function toggleFilter(type, value) {
+      activeFilters[type] = activeFilters[type] === value ? null : value;
+      renderPool();
+    }
+
+    function resetFilters() {
+      activeFilters.rarity = null;
+      activeFilters.attribute = null;
+      activeFilters.roleType = null;
+      renderPool();
+    }
+
+    function renderPool() {
+      const advBox = document.getElementById("adventurers");
+      const supBox = document.getElementById("supporters");
+      advBox.innerHTML = "";
+      supBox.innerHTML = "";
+
+      const filterFunc = char => {
+        if (activeFilters.rarity && char.rarity !== activeFilters.rarity) return false;
+        if (activeFilters.attribute && char.attribute !== activeFilters.attribute) return false;
+        if (activeFilters.roleType && char.roleType !== activeFilters.roleType) return false;
+        return true;
+      };
+
+      characters.adventurers.filter(filterFunc).forEach(char => {
+        char.role = "adventurer";
+        advBox.appendChild(createCharacterEl(char));
+      });
+
+      characters.supporters.filter(filterFunc).forEach(char => {
+        char.role = "supporter";
+        supBox.appendChild(createCharacterEl(char));
+      });
+    }
+
+    function createCharacterEl(char) {
+      const el = document.createElement("div");
+      el.className = "character";
+      el.draggable = true;
+      el.dataset.name = char.name;
+      el.dataset.img = char.img;
+      el.dataset.role = char.role;
+      el.innerHTML = `<img src="${char.img}" alt="${char.name}" title="${char.name}">`;
+
+      el.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text/plain", JSON.stringify({ ...char, fromPool: true }));
+        el.classList.add("dragging");
+      });
+      el.addEventListener("dragend", () => el.classList.remove("dragging"));
+
+      if (usedNames.has(char.name)) {
+        el.classList.add("used");
+      }
+      return el;
+    }
+
+    function createSlot(type) {
+      const slot = document.createElement("div");
+      slot.className = "slot";
+      slot.dataset.type = type;
+
+      slot.addEventListener("dragover", e => e.preventDefault());
+      slot.addEventListener("drop", e => {
+        e.preventDefault();
+        const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+        if (type !== data.role) return;
+
+        const newBaseName = data.baseName;
+
+        // 🟡 获取当前小组（冒险者+支援者两个槽位）
+        const row = slot.closest(".team-row");
+        const index = Array.from(row.children).indexOf(slot);
+        const pairedIndex = type === "adventurer" ? index + 1 : index - 1;
+        const pairedSlot = row.children[pairedIndex];
+        const pairedImg = pairedSlot?.querySelector("img");
+
+        let conflict = false;
+
+        if (pairedImg) {
+          const allChars = characters.adventurers.concat(characters.supporters);
+          const matched = allChars.find(c => c.name === pairedImg.alt);
+          if (matched && matched.baseName === newBaseName) {
+            conflict = true;
+          }
+        }
+
+        if (conflict) {
+          alert(`该小组中不能出现重复角色：${newBaseName}`);
+          return;
+        }
+
+        const targetImg = slot.querySelector("img");
+        const sourceSlot = slotMap.get(data.name);
+
+        if (targetImg) {
+          const targetName = targetImg.alt;
+          const targetData = {
+            name: targetName,
+            img: targetImg.getAttribute("src"),
+            role: type
+          };
+          if (sourceSlot && sourceSlot !== slot) {
+            setSlotImage(sourceSlot, targetData);
+            slotMap.set(targetName, sourceSlot);
+          }
+        } else {
+          if (sourceSlot && sourceSlot !== slot) {
+            sourceSlot.innerHTML = "";
+            slotMap.delete(data.name);
+          }
+        }
+
+        setSlotImage(slot, data);
+        slotMap.set(data.name, slot);
+
+        usedNames.clear();
+        slotMap.forEach((v, k) => usedNames.add(k));
+        renderPool();
+        saveToLocal();
+      });
+
+
+      slot.addEventListener("click", () => {
+        const img = slot.querySelector("img");
+        if (img) {
+          usedNames.delete(img.alt);
+          slotMap.delete(img.alt);
+          slot.innerHTML = "";
+          renderPool();
+          saveToLocal();
+        }
+      });
+
+      return slot;
+    }
+
+
+    function setSlotImage(slot, char) {
+      slot.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = char.img;
+      img.alt = char.name;
+      img.title = char.name;
+      img.draggable = true;
+
+      img.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text/plain", JSON.stringify({ ...char, fromPool: false }));
+        img.classList.add("dragging");
+      });
+      img.addEventListener("dragend", () => {
+        img.classList.remove("dragging");
+      });
+
+      slot.appendChild(img);
+    }
+
+    function addTeam() {
+      const teamNumber = availableTeamNumbers.length > 0 ? availableTeamNumbers.shift() : ++teamCounter;
+
+      const container = document.createElement("div");
+      container.className = "team-container";
+
+      const header = document.createElement("div");
+      header.className = "team-header";
+
+      const label = document.createElement("div");
+      label.className = "team-label";
+      label.contentEditable = true;
+      label.spellcheck = false;
+      label.textContent = `队伍 ${teamNumber}`;
+      label.dataset.defaultName = `队伍 ${teamNumber}`;
+
+      label.addEventListener("keypress", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          label.blur();
+        }
+      });
+
+      label.addEventListener("blur", () => {
+        if (label.textContent.trim() === "") {
+          label.textContent = label.dataset.defaultName;
+        }
+        saveToLocal();
+      });
+
+      const controls = document.createElement("div");
+
+      const clearBtn = document.createElement("button");
+      clearBtn.textContent = "清空";
+      clearBtn.onclick = () => {
+        if (!confirm(`确定清空 ${label.textContent.trim()} 吗？`)) return;
+        row.querySelectorAll(".slot").forEach(slot => {
+          const img = slot.querySelector("img");
+          if (img) {
+            usedNames.delete(img.alt);
+            slotMap.delete(img.alt);
+            slot.innerHTML = "";
+          }
+        });
+        renderPool();
+        saveToLocal();
+      };
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "删除队伍";
+      deleteBtn.onclick = () => {
+        if (!confirm(`确定要删除 ${label.textContent.trim()} 吗？`)) return;
+        container.querySelectorAll(".slot img").forEach(img => {
+          usedNames.delete(img.alt);
+          slotMap.delete(img.alt);
+        });
+        container.remove();
+        availableTeamNumbers.push(teamNumber);
+        renderPool();
+        saveToLocal();
+      };
+
+      controls.appendChild(clearBtn);
+      controls.appendChild(deleteBtn);
+      header.appendChild(label);
+      header.appendChild(controls);
+      container.appendChild(header);
+
+      const row = document.createElement("div");
+      row.className = "team-row";
+      for (let i = 0; i < 3; i++) {
+        row.appendChild(createSlot("adventurer"));
+        row.appendChild(createSlot("supporter"));
+      }
+
+      container.appendChild(row);
+      document.getElementById("teams").appendChild(container);
+
+      saveToLocal();
+    }
+
+    function getCurrentData() {
+      const teams = [];
+      document.querySelectorAll(".team-container").forEach(container => {
+        const name = container.querySelector(".team-label").textContent.trim();
+        const row = container.querySelector(".team-row");
+        const slots = row.querySelectorAll(".slot");
+        const team = {
+          name,
+          adventurers: [],
+          supporters: []
+        };
+        slots.forEach(slot => {
+          const type = slot.dataset.type;
+          const img = slot.querySelector("img");
+          if (img) {
+            const char = {
+              name: img.alt,
+              img: img.getAttribute("src"),
+              role: type
+            };
+            team[type + "s"].push(char);
+          } else {
+            team[type + "s"].push(null);
+          }
+        });
+        teams.push(team);
+      });
+      return teams;
+    }
+
+    function saveToLocal() {
+      const data = getCurrentData();
+      localStorage.setItem("savedTeams", JSON.stringify(data));
+    }
+
+    function loadFromLocal() {
+      const data = localStorage.getItem("savedTeams");
+      if (data) {
+        renderFromData(JSON.parse(data));
+      }
+    }
+
+    function exportConfig() {
+      const data = getCurrentData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "team_config.json";
+      a.click();
+    }
+
+    function importConfig(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const data = JSON.parse(e.target.result);
+        renderFromData(data);
+        saveToLocal();
+      };
+      reader.readAsText(file);
+    }
+
+    function renderFromData(data) {
+      document.getElementById("teams").innerHTML = "";
+      usedNames.clear();
+      slotMap.clear();
+      availableTeamNumbers.length = 0;
+      teamCounter = 0;
+
+      data.forEach(team => {
+        const teamNumber = ++teamCounter;
+
+        const container = document.createElement("div");
+        container.className = "team-container";
+
+        const header = document.createElement("div");
+        header.className = "team-header";
+
+        const label = document.createElement("div");
+        label.className = "team-label";
+        label.contentEditable = true;
+        label.spellcheck = false;
+        label.textContent = team.name;
+        label.dataset.defaultName = team.name;
+
+        label.addEventListener("keypress", e => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            label.blur();
+          }
+        });
+
+        label.addEventListener("blur", () => {
+          if (label.textContent.trim() === "") {
+            label.textContent = label.dataset.defaultName;
+          }
+          saveToLocal();
+        });
+
+        const controls = document.createElement("div");
+
+        const clearBtn = document.createElement("button");
+        clearBtn.textContent = "清空";
+        clearBtn.onclick = () => {
+          if (!confirm(`确定清空 ${label.textContent.trim()} 吗？`)) return;
+          row.querySelectorAll(".slot").forEach(slot => {
+            const img = slot.querySelector("img");
+            if (img) {
+              usedNames.delete(img.alt);
+              slotMap.delete(img.alt);
+              slot.innerHTML = "";
+            }
+          });
+          renderPool();
+          saveToLocal();
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "删除队伍";
+        deleteBtn.onclick = () => {
+          if (!confirm(`确定要删除 ${label.textContent.trim()} 吗？`)) return;
+          container.querySelectorAll(".slot img").forEach(img => {
+            usedNames.delete(img.alt);
+            slotMap.delete(img.alt);
+          });
+          container.remove();
+          availableTeamNumbers.push(teamNumber);
+          renderPool();
+          saveToLocal();
+        };
+
+        controls.appendChild(clearBtn);
+        controls.appendChild(deleteBtn);
+        header.appendChild(label);
+        header.appendChild(controls);
+        container.appendChild(header);
+
+        const row = document.createElement("div");
+        row.className = "team-row";
+
+        for (let i = 0; i < 3; i++) {
+          const advSlot = createSlot("adventurer");
+          const advData = team.adventurers[i];
+          if (advData) {
+            setSlotImage(advSlot, advData);
+            slotMap.set(advData.name, advSlot);
+            usedNames.add(advData.name);
+          }
+          row.appendChild(advSlot);
+
+          const supSlot = createSlot("supporter");
+          const supData = team.supporters[i];
+          if (supData) {
+            setSlotImage(supSlot, supData);
+            slotMap.set(supData.name, supSlot);
+            usedNames.add(supData.name);
+          }
+          row.appendChild(supSlot);
+        }
+
+        container.appendChild(row);
+        document.getElementById("teams").appendChild(container);
+      });
+
+      renderPool();
+    }
+
+  </script>
+</body>
+</html>
