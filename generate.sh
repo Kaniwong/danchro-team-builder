@@ -3,8 +3,20 @@
 output="character-pool.js"
 
 extract_field() {
-  # 提取字段，例如 "UR_FIRE_ATTACK_英雄の雛鳥_ベル" → "UR"
   echo "$1" | tr '[:lower:]' '[:upper:]' | awk -F '_' "{ print \$$2 }"
+}
+
+extract_meta() {
+  echo "$1" | cut -d'_' -f1-3
+}
+
+extract_title() {
+  local meta=$(extract_meta "$1")
+  echo "$1" | sed "s/^${meta}_//" | cut -d'_' -f-99 | awk -F '__' '{print $1}'
+}
+
+extract_base_name() {
+  echo "$1" | awk -F '__' '{print $2}'
 }
 
 (
@@ -18,12 +30,13 @@ for f in adventurers/*.{jpg,jpeg,png}; do
   rarity=$(extract_field "$name" 1)
   attribute=$(extract_field "$name" 2)
   role=$(extract_field "$name" 3)
-  base_name=$(echo "$name" | awk -F'_' '{print $NF}')
+  title=$(extract_title "$name")
+  base_name=$(extract_base_name "$name")
 
-  if [[ "$name" =~ ^[Uu][Rr]_[A-Za-z]+_[A-Za-z]+_ ]]; then
-    echo "    { name: \"$name\", img: \"$f\", role: \"adventurer\", rarity: \"$rarity\", attribute: \"$attribute\", roleType: \"$role\", baseName: \"$base_name\" },"
+  if [[ -n "$base_name" ]]; then
+    echo "    { name: \"$name\", img: \"$f\", role: \"adventurer\", rarity: \"$rarity\", attribute: \"$attribute\", roleType: \"$role\", title: \"$title\", baseName: \"$base_name\" },"
   else
-    echo "    { name: \"$name\", img: \"$f\", role: \"adventurer\", baseName: \"$base_name\" },"
+    echo "    { name: \"$name\", img: \"$f\", role: \"adventurer\" },"
   fi
 done
 echo "  ],"
@@ -36,12 +49,13 @@ for f in supporters/*.{jpg,jpeg,png}; do
   rarity=$(extract_field "$name" 1)
   attribute=$(extract_field "$name" 2)
   role=$(extract_field "$name" 3)
-  base_name=$(echo "$name" | awk -F'_' '{print $NF}')
+  title=$(extract_title "$name")
+  base_name=$(extract_base_name "$name")
 
-  if [[ "$name" =~ ^[Uu][Rr]_[A-Za-z]+_[A-Za-z]+_ ]]; then
-    echo "    { name: \"$name\", img: \"$f\", role: \"supporter\", rarity: \"$rarity\", attribute: \"$attribute\", roleType: \"$role\", baseName: \"$base_name\" },"
+  if [[ -n "$base_name" ]]; then
+    echo "    { name: \"$name\", img: \"$f\", role: \"supporter\", rarity: \"$rarity\", attribute: \"$attribute\", roleType: \"$role\", title: \"$title\", baseName: \"$base_name\" },"
   else
-    echo "    { name: \"$name\", img: \"$f\", role: \"supporter\", baseName: \"$base_name\" },"
+    echo "    { name: \"$name\", img: \"$f\", role: \"supporter\" },"
   fi
 done
 echo "  ]"
