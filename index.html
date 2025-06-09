@@ -397,6 +397,7 @@ new Sortable(document.getElementById('teams'), {
       const container = document.createElement("div");
       container.className = "team-container";
       container.draggable = true;
+      wrapper.appendChild(container);
       addTeamDragEvents(wrapper); // 加入拖拽事件绑定
       const header = document.createElement("div"); header.className = "team-header";
       const label = document.createElement("div"); label.className = "team-label";
