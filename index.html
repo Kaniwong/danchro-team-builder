@@ -238,8 +238,29 @@ button {
   }
 
   #eligibleList img {
+    width: 50px!important;
+    height: 50px!important;
+  }
+
+  #eligibleList {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 6px;
+    justify-content: center;
+  }
+
+  #eligibleList img {
     width: 48px;
     height: 48px;
+  }
+
+  #eligibleList label {
+    /* flex-direction: column; */
+    align-items: center;
+    font-size: 12px;
+  }
+
+  #eligibleList input[type="checkbox"] {
+    margin-bottom: 4px;
   }
 
   .character-pool {
