@@ -40,34 +40,24 @@
   opacity: 0.5;
   border: 2px dashed #888;
 }
-.team-drag-handle {
-  font-size: 18px;
-  padding: 2px 6px;
-  border-radius: 4px;
+#overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: none;
+  z-index: 998;
 }
-.team-drag-handle:hover {
-  background-color: #eee;
+#eligibleSelector {
+  z-index: 999;
+  width: 80%;
 }
-.team-wrapper.dragging {
-  opacity: 0.5;
-  border: 2px dashed #888;
-}
-
-.team-drag-handle {
-  width: 28px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 20px;
-  user-select: none;
-  cursor: grab;
-  padding: 4px;
-  margin-right: 8px;
+#eligibleList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
 }
 
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-
 </head>
 <body>
   <h1>角色编队工具</h1>
@@ -90,6 +80,7 @@
     <button onclick="toggleFilter('roleType', 'SPEED')">Speed</button>
     <button onclick="toggleFilter('roleType', 'SUPPORT')">Support</button>
     <button onclick="resetFilters()">重置</button>
+    <button onclick="openEligibleSelector()">🎮 设置可上场角色</button>
   </div>
 
   <!-- <div class="pool-group">
@@ -101,9 +92,20 @@
     <h2>支援者</h2>
     <div class="character-pool" id="supporters"></div>
   </div> -->
+ <div id="overlay" onclick="closeEligibleSelector()"></div>
+  
+  <div id="eligibleSelector" style="display:none; background:#fff; border:1px solid #ccc; padding:10px; position:fixed; top:10%; left:50%; transform:translateX(-50%); max-height:80vh; overflow:auto; z-index:999;">
+    <h3>设置你的角色池</h3>
+    <div id="eligibleList"></div>
+    <div style="margin-top: 15px;">
+      <button onclick="saveEligible()">✅ 保存</button>
+      <button onclick="closeEligibleSelector()">❌ 关闭</button>
+    </div>
+  </div>
+
 
   <div style="display: flex; gap: 20px; align-items: flex-start;">
-  <div style="flex: 1;">
+  <div style="flex: 2;">
     <div class="pool-group">
       <h2>冒险者</h2>
       <div class="character-pool" id="adventurers"></div>
@@ -114,7 +116,7 @@
     </div>
   </div>
 
-  <div style="flex: 1;">
+  <div style="flex: 2;">
     <h2>队伍编队</h2>
     <div id="teams"></div>
     <div style="margin-top: 10px;">
@@ -141,15 +143,6 @@
     window.addEventListener("DOMContentLoaded", () => {
       renderPool();
       loadFromLocal();
-
-      // 移动端 + 桌面拖拽支持队伍排序
-      new Sortable(document.getElementById("teams"), {
-        handle: ".team-drag-handle",
-        animation: 150,
-        onEnd: function () {
-          saveToLocal(); // 拖拽结束后保存队伍顺序
-        }
-      });
     });
 
     function toggleFilter(type, value) {
@@ -170,6 +163,8 @@
       supBox.innerHTML = "";
 
       const filterFunc = char => {
+         // ✅ 没有设置时默认全显示
+        if (eligibleCharacters.size > 0 && !eligibleCharacters.has(char.name)) return false;
         if (activeFilters.rarity   && char.rarity   !== activeFilters.rarity)   return false;
         if (activeFilters.attribute && char.attribute !== activeFilters.attribute) return false;
         if (activeFilters.roleType  && char.roleType  !== activeFilters.roleType)  return false;
@@ -295,95 +290,45 @@
       slot.appendChild(img);
     }
 
-function addTeam() {
-  const teamNumber = availableTeamNumbers.length ? availableTeamNumbers.shift() : ++teamCounter;
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "team-wrapper";
-  wrapper.style.display = "flex";
-  wrapper.style.alignItems = "stretch";
-
-  const dragHandle = document.createElement("div");
-  dragHandle.className = "team-drag-handle";
-  dragHandle.draggable = true;
-  dragHandle.innerHTML = "⠿";
-  dragHandle.addEventListener("dragstart", (e) => {
-    wrapper.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-    window.currentDraggingTeam = wrapper;
-  });
-  dragHandle.addEventListener("dragend", () => {
-    wrapper.classList.remove("dragging");
-    window.currentDraggingTeam = null;
-  });
-
-  const container = document.createElement("div");
-  container.className = "team-container";
-  // addTeamDragEvents(wrapper);
-
-  const header = document.createElement("div");
-  header.className = "team-header";
-
-  const label = document.createElement("div");
-  label.className = "team-label";
-  label.contentEditable = true;
-  label.spellcheck = false;
-  label.textContent = `队伍 ${teamNumber}`;
-  label.dataset.defaultName = label.textContent;
-  label.addEventListener("keypress", e => { if (e.key === "Enter") { e.preventDefault(); label.blur(); } });
-  label.addEventListener("blur", () => {
-    if (label.textContent.trim() === "") label.textContent = label.dataset.defaultName;
-    saveToLocal();
-  });
-
-  const controls = document.createElement("div");
-  const clearBtn = document.createElement("button");
-  clearBtn.textContent = "清空";
-  clearBtn.onclick = () => {
-    if (!confirm(`确定清空 ${label.textContent}?`)) return;
-    row.querySelectorAll(".slot").forEach(s => {
-      const i = s.querySelector("img");
-      if (i) {
-        usedNames.delete(i.getAttribute("data-name"));
-        slotMap.delete(i.getAttribute("data-name"));
-        s.innerHTML = "";
+    function addTeam() {
+      const teamNumber = availableTeamNumbers.length ? availableTeamNumbers.shift() : ++teamCounter;
+      // const container = document.createElement("div"); container.className = "team-container";
+      const container = document.createElement("div");
+      container.className = "team-container";
+      container.draggable = true;
+      addTeamDragEvents(container); // 加入拖拽事件绑定
+      const header = document.createElement("div"); header.className = "team-header";
+      const label = document.createElement("div"); label.className = "team-label";
+      label.contentEditable = true; label.spellcheck = false;
+      label.textContent = `队伍 ${teamNumber}`;
+      label.dataset.defaultName = label.textContent;
+      label.addEventListener("keypress", e => { if(e.key==="Enter"){ e.preventDefault(); label.blur(); }});
+      label.addEventListener("blur", () => { if(label.textContent.trim()==="") label.textContent = label.dataset.defaultName; saveToLocal(); });
+      const controls = document.createElement("div");
+      const clearBtn = document.createElement("button"); clearBtn.textContent="清空";
+      clearBtn.onclick = () => {
+        if(!confirm(`确定清空 ${label.textContent}?`)) return;
+        row.querySelectorAll(".slot").forEach(s=>{const i=s.querySelector("img"); if(i){usedNames.delete(i.getAttribute("data-name")); slotMap.delete(i.getAttribute("data-name")); s.innerHTML="";}});
+        renderPool(); saveToLocal();
+      };
+      const deleteBtn = document.createElement("button"); deleteBtn.textContent="删除队伍";
+      deleteBtn.onclick = () => {
+        if(!confirm(`确定删除 ${label.textContent}?`)) return;
+        container.querySelectorAll(".slot img").forEach(i=>{usedNames.delete(i.getAttribute("data-name")); slotMap.delete(i.getAttribute("data-name"));});
+        container.remove(); availableTeamNumbers.push(teamNumber); renderPool(); saveToLocal();
+      };
+      controls.appendChild(clearBtn); controls.appendChild(deleteBtn);
+      header.appendChild(label); header.appendChild(controls);
+      container.appendChild(header);
+      const row = document.createElement("div"); row.className="team-row";
+      for(let i=0;i<3;i++){
+        row.appendChild(createSlot("adventurer"));
+        row.appendChild(createSlot("supporter"));
       }
-    });
-    renderPool(); saveToLocal();
-  };
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.textContent = "删除队伍";
-  deleteBtn.onclick = () => {
-    if (!confirm(`确定删除 ${label.textContent}?`)) return;
-    container.querySelectorAll(".slot img").forEach(i => {
-      usedNames.delete(i.getAttribute("data-name"));
-      slotMap.delete(i.getAttribute("data-name"));
-    });
-    wrapper.remove();
-    availableTeamNumbers.push(teamNumber);
-    renderPool(); saveToLocal();
-  };
-
-  controls.appendChild(clearBtn);
-  controls.appendChild(deleteBtn);
-  header.appendChild(label);
-  header.appendChild(controls);
-  container.appendChild(header);
-
-  const row = document.createElement("div");
-  row.className = "team-row";
-  for (let i = 0; i < 3; i++) {
-    row.appendChild(createSlot("adventurer"));
-    row.appendChild(createSlot("supporter"));
-  }
-  container.appendChild(row);
-
-  wrapper.appendChild(dragHandle);
-  wrapper.appendChild(container);
-  document.getElementById("teams").appendChild(wrapper);
-  saveToLocal();
-}
+      container.appendChild(row);
+      document.getElementById("teams").appendChild(container);
+      saveToLocal();
+    }
 
     function getCurrentData(){
       const teams=[];
@@ -403,119 +348,72 @@ function addTeam() {
     }
     function saveToLocal(){localStorage.setItem("savedTeams", JSON.stringify(getCurrentData()));}
     function loadFromLocal(){ const d=localStorage.getItem("savedTeams"); if(d)renderFromData(JSON.parse(d)); }
-    function exportConfig(){ const blob=new Blob([JSON.stringify(getCurrentData(),null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="team_config.json"; a.click(); }
-    function importConfig(e){ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>{ renderFromData(JSON.parse(ev.target.result)); saveToLocal(); }; r.readAsText(f); }
-    function renderFromData(data) {
-  document.getElementById("teams").innerHTML = "";
-  usedNames.clear(); slotMap.clear(); availableTeamNumbers.length = 0; teamCounter = 0;
-
-  data.forEach(team => {
-    const num = ++teamCounter;
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "team-wrapper";
-    wrapper.style.display = "flex";
-    wrapper.style.alignItems = "stretch";
-
-    const dragHandle = document.createElement("div");
-    dragHandle.className = "team-drag-handle";
-    dragHandle.draggable = true;
-    dragHandle.innerHTML = "⠿";
-    dragHandle.addEventListener("dragstart", (e) => {
-      wrapper.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-      window.currentDraggingTeam = wrapper;
-    });
-    dragHandle.addEventListener("dragend", () => {
-      wrapper.classList.remove("dragging");
-      window.currentDraggingTeam = null;
-    });
-
-    const container = document.createElement("div");
-    container.className = "team-container";
-    // addTeamDragEvents(wrapper);
-
-    const header = document.createElement("div");
-    header.className = "team-header";
-
-    const label = document.createElement("div");
-    label.className = "team-label";
-    label.contentEditable = true;
-    label.spellcheck = false;
-    label.textContent = team.name;
-    label.dataset.defaultName = team.name;
-    label.addEventListener("keypress", e => { if (e.key === "Enter") { e.preventDefault(); label.blur(); } });
-    label.addEventListener("blur", () => {
-      if (label.textContent.trim() === "") label.textContent = label.dataset.defaultName;
-      saveToLocal();
-    });
-
-    const controls = document.createElement("div");
-    const clearBtn = document.createElement("button");
-    clearBtn.textContent = "清空";
-    clearBtn.onclick = () => {
-      if (!confirm(`确定清空 ${label.textContent}?`)) return;
-      row.querySelectorAll(".slot").forEach(s => {
-        const i = s.querySelector("img");
-        if (i) {
-          usedNames.delete(i.getAttribute("data-name"));
-          slotMap.delete(i.getAttribute("data-name"));
-          s.innerHTML = "";
-        }
-      });
-      renderPool(); saveToLocal();
-    };
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "删除队伍";
-    deleteBtn.onclick = () => {
-      if (!confirm(`确定删除 ${label.textContent}?`)) return;
-      container.querySelectorAll(".slot img").forEach(i => {
-        usedNames.delete(i.getAttribute("data-name"));
-        slotMap.delete(i.getAttribute("data-name"));
-      });
-      wrapper.remove();
-      availableTeamNumbers.push(num);
-      renderPool(); saveToLocal();
-    };
-
-    controls.appendChild(clearBtn);
-    controls.appendChild(deleteBtn);
-    header.appendChild(label);
-    header.appendChild(controls);
-    container.appendChild(header);
-
-    const row = document.createElement("div");
-    row.className = "team-row";
-    for (let i = 0; i < 3; i++) {
-      const advSlot = createSlot("adventurer");
-      const advData = team.adventurers[i];
-      if (advData) {
-        setSlotImage(advSlot, advData);
-        slotMap.set(advData.name, advSlot);
-        usedNames.add(advData.name);
-      }
-      row.appendChild(advSlot);
-
-      const supSlot = createSlot("supporter");
-      const supData = team.supporters[i];
-      if (supData) {
-        setSlotImage(supSlot, supData);
-        slotMap.set(supData.name, supSlot);
-        usedNames.add(supData.name);
-      }
-      row.appendChild(supSlot);
-    }
-
-    container.appendChild(row);
-    wrapper.appendChild(dragHandle);
-    wrapper.appendChild(container);
-    document.getElementById("teams").appendChild(wrapper);
-  });
-
-  renderPool();
+    function exportConfig() {
+  const data = {
+    teams: getCurrentData(),
+    eligibleCharacters: Array.from(eligibleCharacters),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "team_config.json";
+  a.click();
 }
 
+    function importConfig(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    const data = JSON.parse(ev.target.result);
+    if (data.teams) renderFromData(data.teams);
+    if (Array.isArray(data.eligibleCharacters)) {
+      eligibleCharacters = new Set(data.eligibleCharacters);
+      localStorage.setItem("eligibleCharacters", JSON.stringify(data.eligibleCharacters));
+    }
+    saveToLocal();
+    renderPool();
+  };
+  r.readAsText(f);
+}
+
+    function renderFromData(data){
+      document.getElementById("teams").innerHTML="";
+      usedNames.clear(); slotMap.clear(); availableTeamNumbers.length=0; teamCounter=0;
+      data.forEach(team=>{
+        const num=++teamCounter;
+        const container=document.createElement("div"); container.className="team-container";
+        const header=document.createElement("div"); header.className="team-header";
+        const label=document.createElement("div"); label.className="team-label"; label.contentEditable=true; label.spellcheck=false;
+        label.textContent=team.name; label.dataset.defaultName=team.name;
+        label.addEventListener("keypress",e=>{ if(e.key==="Enter"){ e.preventDefault(); label.blur(); }});
+        label.addEventListener("blur",()=>{ if(label.textContent.trim()==="") label.textContent=label.dataset.defaultName; saveToLocal(); });
+        const controls=document.createElement("div");
+        const clearBtn=document.createElement("button"); clearBtn.textContent="清空";
+        clearBtn.onclick=()=>{
+          if(!confirm(`确定清空 ${label.textContent}?`)) return;
+          row.querySelectorAll(".slot").forEach(s=>{ const i=s.querySelector("img"); if(i){ usedNames.delete(i.getAttribute("data-name")); slotMap.delete(i.getAttribute("data-name")); s.innerHTML=""; }});
+          renderPool(); saveToLocal();
+        };
+        const deleteBtn=document.createElement("button"); deleteBtn.textContent="删除队伍";
+        deleteBtn.onclick=()=>{
+          if(!confirm(`确定删除 ${label.textContent}?`)) return;
+          container.querySelectorAll(".slot img").forEach(i=>{ usedNames.delete(i.getAttribute("data-name")); slotMap.delete(i.getAttribute("data-name")); });
+          container.remove(); availableTeamNumbers.push(num); renderPool(); saveToLocal();
+        };
+        controls.appendChild(clearBtn); controls.appendChild(deleteBtn);
+        header.appendChild(label); header.appendChild(controls);
+        container.appendChild(header);
+        const row=document.createElement("div"); row.className="team-row";
+        for(let i=0;i<3;i++){
+          const advSlot=createSlot("adventurer"); const advData=team.adventurers[i]; if(advData){ setSlotImage(advSlot, advData); slotMap.set(advData.name, advSlot); usedNames.add(advData.name);} row.appendChild(advSlot);
+          const supSlot=createSlot("supporter"); const supData=team.supporters[i]; if(supData){ setSlotImage(supSlot, supData); slotMap.set(supData.name, supSlot); usedNames.add(supData.name);} row.appendChild(supSlot);
+        }
+        container.appendChild(row);
+        document.getElementById("teams").appendChild(container);
+      });
+      renderPool();
+    }
     let scrollTimer = null;
 
 document.addEventListener("dragover", (e) => {
@@ -556,40 +454,91 @@ document.addEventListener("drop", () => {
     scrollTimer = null;
   }
 });
-// function addTeamDragEvents(container) {
-//   container.addEventListener("dragstart", (e) => {
-//     container.classList.add("dragging");
-//     e.dataTransfer.effectAllowed = "move";
-//     window.currentDraggingTeam = container;
-//   });
+function addTeamDragEvents(container) {
+  container.addEventListener("dragstart", (e) => {
+    container.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    window.currentDraggingTeam = container;
+  });
 
-//   container.addEventListener("dragend", () => {
-//     container.classList.remove("dragging");
-//     window.currentDraggingTeam = null;
-//   });
+  container.addEventListener("dragend", () => {
+    container.classList.remove("dragging");
+    window.currentDraggingTeam = null;
+  });
 
-//   container.addEventListener("dragover", (e) => {
-//     e.preventDefault();
-//     const dragging = window.currentDraggingTeam;
-//     if (!dragging || dragging === container) return;
+  container.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    const dragging = window.currentDraggingTeam;
+    if (!dragging || dragging === container) return;
 
-//     const bounding = container.getBoundingClientRect();
-//     const offset = e.clientY - bounding.top;
+    const bounding = container.getBoundingClientRect();
+    const offset = e.clientY - bounding.top;
 
-//     const parent = container.parentNode;
-//     const refNode = offset > bounding.height / 2 ? container.nextSibling : container;
+    const parent = container.parentNode;
+    const refNode = offset > bounding.height / 2 ? container.nextSibling : container;
 
-//     if (dragging !== refNode) {
-//       parent.insertBefore(dragging, refNode);
-//     }
-//   });
+    if (dragging !== refNode) {
+      parent.insertBefore(dragging, refNode);
+    }
+  });
 
-//   container.addEventListener("drop", () => {
-//     saveToLocal(); // 拖动完成后保存顺序
-//   });
-// }
+  container.addEventListener("drop", () => {
+    saveToLocal(); // 拖动完成后保存顺序
+  });
+}
 
+let eligibleCharacters = new Set(JSON.parse(localStorage.getItem("eligibleCharacters") || "[]"));
 
+    function openEligibleSelector() {
+      const container = document.getElementById("eligibleList");
+      if (!container) {
+        alert("找不到 eligibleList 元素，请检查 HTML 是否正确插入！");
+        return;
+      }
+      container.innerHTML = "";
+      const allChars = [...(characters?.adventurers || []), ...(characters?.supporters || [])];
+      allChars.sort((a, b) => (a.baseName || a.name).localeCompare(b.baseName || b.name, 'zh'));
+
+      allChars.forEach(char => {
+        const label = document.createElement("label");
+        label.style.display = "flex";
+        label.style.alignItems = "center";
+        label.style.gap = "6px";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = char.name;
+        checkbox.checked = eligibleCharacters.has(char.name);
+
+        const img = document.createElement("img");
+        img.src = char.img;
+        img.alt = char.name;
+        img.style.width = "80px";
+        img.style.height = "80px";
+
+        label.appendChild(checkbox);
+        label.appendChild(img);
+        // label.appendChild(document.createTextNode(char.baseName || char.name));
+        container.appendChild(label);
+      });
+
+      document.getElementById("overlay").style.display = "block";
+      document.getElementById("eligibleSelector").style.display = "block";
+    }
+
+    function closeEligibleSelector() {
+      document.getElementById("overlay").style.display = "none";
+      document.getElementById("eligibleSelector").style.display = "none";
+    }
+
+    function saveEligible() {
+      const selected = Array.from(document.querySelectorAll("#eligibleList input:checked"))
+        .map(el => el.value);
+      eligibleCharacters = new Set(selected);
+      localStorage.setItem("eligibleCharacters", JSON.stringify(selected));
+      closeEligibleSelector();
+      if (typeof renderPool === 'function') renderPool();
+    }
   </script>
 </body>
 </html>
