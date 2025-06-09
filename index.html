@@ -273,22 +273,24 @@
     }
 
     function setSlotImage(slot, char) {
-      const nameKey = char.name;
-      const displayName = char.baseName || char.name;
-      slot.innerHTML = "";
-      const img = document.createElement("img");
-      img.src = char.img;
-      img.alt = displayName;
-      img.title = displayName;
-      img.setAttribute("data-name", nameKey);
-      img.draggable = true;
-      img.addEventListener("dragstart", e => {
-        e.dataTransfer.setData("text/plain", JSON.stringify(char));
-        img.classList.add("dragging");
-      });
-      img.addEventListener("dragend", () => img.classList.remove("dragging"));
-      slot.appendChild(img);
-    }
+  const nameKey = char.name;
+  const displayName = char.baseName || char.name;
+  slot.innerHTML = "";
+  const img = document.createElement("img");
+  img.src = char.img;  // ✅ 用原始相对路径，不改
+  img.alt = displayName;
+  img.title = displayName;
+  img.setAttribute("data-name", nameKey);
+  img.setAttribute("data-src", char.img); // ✅ 加上真实路径（用于导出）
+  img.draggable = true;
+  img.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("text/plain", JSON.stringify(char));
+    img.classList.add("dragging");
+  });
+  img.addEventListener("dragend", () => img.classList.remove("dragging"));
+  slot.appendChild(img);
+}
+
 
     function addTeam() {
       const teamNumber = availableTeamNumbers.length ? availableTeamNumbers.shift() : ++teamCounter;
@@ -340,7 +342,12 @@
         slots.forEach(s=>{
           const type=s.dataset.type;
           const img=s.querySelector("img");
-          team[type+"s"].push(img?{name:img.getAttribute("data-name"), img:img.src, role: type, baseName: img.title}:null);
+          team[type + "s"].push(img ? {
+  name: img.getAttribute("data-name"),
+  img: img.getAttribute("data-src"),  // ✅ 改这里，不用 img.src
+  role: type,
+  baseName: img.title
+} : null);
         });
         teams.push(team);
       });
