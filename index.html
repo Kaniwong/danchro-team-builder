@@ -2,34 +2,82 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>角色编队工具</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f7f7f7; }
-    h2 { margin-top: 30px; }
-    .pool-group { margin-bottom: 20px; }
-    .character-pool, .team-row {
-      display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0;
-    }
-    .character, .slot {
-      width: 80px; height: 80px; border: 2px dashed #ccc; border-radius: 10px;
-      background-color: white; display: flex; align-items: center; justify-content: center;
-      overflow: hidden;
-    }
-    .character img, .slot img { max-width: 100%; max-height: 100%; }
-    .character.dragging { opacity: 0.5; }
-    .used { opacity: 0.3; pointer-events: none; }
-    .team-container {
-      margin-bottom: 20px; padding: 10px; background: #fff;
-      border: 1px solid #ccc; border-radius: 6px;
-    }
-    .team-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 10px;
-    }
-    .team-label { font-weight: bold; outline: none; }
-    button { margin-left: 6px; cursor: pointer; }
-    #filters button { margin-right: 4px; }
-    .character-pool {
+body {
+  font-family: sans-serif;
+  padding: 20px;
+  background: #f7f7f7;
+}
+h1 {
+  font-size: 24px;
+}
+h2 {
+  margin-top: 30px;
+  font-size: 20px;
+}
+.pool-group {
+  margin-bottom: 20px;
+}
+.character-pool,
+.team-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0;
+}
+.character,
+.slot {
+  width: 80px;
+  height: 80px;
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.character img,
+.slot img {
+  max-width: 100%;
+  max-height: 100%;
+}
+.character.dragging {
+  opacity: 0.5;
+}
+.used {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.team-container {
+  margin-bottom: 20px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.team-label {
+  font-weight: bold;
+  outline: none;
+}
+button {
+  margin-left: 6px;
+  cursor: pointer;
+}
+#filters button {
+  margin-right: 4px;
+}
+.character-pool {
   max-height: 400px;
   overflow-y: auto;
   border: 1px solid #ccc;
@@ -42,7 +90,10 @@
 }
 #overlay {
   position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.4);
   display: none;
   z-index: 998;
@@ -56,28 +107,12 @@
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 10px;
 }
-
- #filters button.active {
-    background: #007bff;
-    color: white;
-    border: 2px solid #0056b3;
-  }
-  /* .drag-handle {
-  width: 16px;
-  background: #ddd;
-  cursor: grab;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-top-left-radius: 6px;
-  border-bottom-left-radius: 6px;
+#filters button.active {
+  background: #007bff;
+  color: white;
+  border: 2px solid #0056b3;
 }
-.drag-handle:active {
-  cursor: grabbing;
-  background: #bbb;
-} */
- .drag-handle {
+.drag-handle {
   width: 28px;
   height: 100%;
   min-width: 18px;
@@ -95,7 +130,9 @@
   user-select: none;
   z-index: 2;
 }
-.drag-handle:hover, .drag-handle:active, .drag-handle:focus {
+.drag-handle:hover,
+.drag-handle:active,
+.drag-handle:focus {
   background: #eaf4ff;
   box-shadow: 0 2px 8px #007bff22;
   opacity: 1;
@@ -105,7 +142,6 @@
   width: 18px;
   height: 18px;
 }
-
 .dragging {
   opacity: 0.7;
   box-shadow: 0 4px 16px #007bff33;
@@ -113,34 +149,265 @@
 .chosen {
   border: 2px solid #007bff;
 }
+
+/* 主区域布局 */
+#main-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+/* ✅ 移动端优化 */
+@media (max-width: 768px) {
+  body {
+    padding: 0;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  h2 {
+    font-size: 16px;
+    margin-top: 16px;
+  }
+
+  #main-layout {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #main-layout > div {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  /* 图标缩小 */
+  .character,
+  .slot {
+    width: 50px;
+    height: 50px;
+  }
+
+  .character-pool,
+  .team-row {
+    gap: 6px;
+    justify-content: center;
+  }
+
+  /* 标题字体 */
+  .team-label {
+    font-size: 14px;
+    max-width: 60%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* 按钮紧凑 */
+  .team-header button {
+    font-size: 12px;
+    padding: 1px 5px;
+    margin-left: 4px;
+  }
+
+  /* 筛选条滚动 */
+  #filters {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
+    font-size: 16px;
+    margin-bottom: 0;
+  }
+
+  #filters button {
+    display: inline-block;
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+
+  #eligibleSelector {
+    width: 95% !important;
+    max-height: 85vh;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  #eligibleList img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .character-pool {
+    max-height: 240px;
+    padding: 4px;
+  }
+
+  .team-container {
+    padding: 6px;
+    padding-bottom: 0;
+    margin-bottom: 5px;
+  }
+  .drag-handle {
+    justify-content: flex-start;
+}
+}
+.team-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+/* ✅ 移动端样式优化 */
+@media (max-width: 768px) {
+  .team-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .team-controls button,
+  .team-controls input[type="file"] {
+    font-size: 15px;
+    padding: 0;
+    width: 100%;
+    margin: 0;
+  }
+}
+
+.filters {
+  margin-bottom: 12px;
+}
+
+.filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.toggle-filters {
+  font-size: 14px;
+  padding: 4px 10px;
+}
+
+.filters-body {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filters.show .filters-body {
+    display: flex;
+  }
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-label {
+  flex: 0 0 70px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.filter-buttons {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-buttons.full-width {
+  width: 100%;
+  justify-content: center;
+  gap: 12px;
+  margin-left: 0; /* 去除之前的 left margin */
+}
+
+
+/* ✅ 移动端优化 */
+@media (max-width: 768px) {
+  .filter-label {
+    flex: 0 0 64px;
+    font-size: 14px;
+  }
+
+  .filter-buttons.full-width {
+    margin-top: 10px;
+}
+
+  .filter-buttons button {
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+
+  .toggle-filters {
+    font-size: 13px;
+  }
+
+  /* .filters-body {
+    display: none;
+  } */
+
+  
+}
+
+
   </style>
 </head>
 <body>
   <h1>角色编队工具</h1>
 
-  <div id="filters">
-  <strong>筛选：</strong>
-  稀有度：
-  <button onclick="toggleFilter('rarity', 'SR')" data-type="rarity" data-value="SR">SR</button>
-  <button onclick="toggleFilter('rarity', 'SSR')" data-type="rarity" data-value="SSR">SSR</button>
-  <button onclick="toggleFilter('rarity', 'UR')" data-type="rarity" data-value="UR">UR</button>
-
-  属性：
-  <button onclick="toggleFilter('attribute', 'FIRE')" data-type="attribute" data-value="FIRE">Fire</button>
-  <button onclick="toggleFilter('attribute', 'WIND')" data-type="attribute" data-value="WIND">Wind</button>
-  <button onclick="toggleFilter('attribute', 'EARTH')" data-type="attribute" data-value="EARTH">Earth</button>
-  <button onclick="toggleFilter('attribute', 'ELECTRIC')" data-type="attribute" data-value="ELECTRIC">Electric</button>
-  <button onclick="toggleFilter('attribute', 'WATER')" data-type="attribute" data-value="WATER">Water</button>
-
-  定位：
-  <button onclick="toggleFilter('roleType', 'ATTACK')" data-type="roleType" data-value="ATTACK">Attack</button>
-  <button onclick="toggleFilter('roleType', 'DEFENSE')" data-type="roleType" data-value="DEFENSE">Defense</button>
-  <button onclick="toggleFilter('roleType', 'SPEED')" data-type="roleType" data-value="SPEED">Speed</button>
-  <button onclick="toggleFilter('roleType', 'SUPPORT')" data-type="roleType" data-value="SUPPORT">Support</button>
-
-  <button onclick="resetFilters()">重置</button>
-  <button onclick="openEligibleSelector()">🎮 设置可上场角色</button>
+<div id="filters" class="filters">
+  <div class="filters-header">
+    <strong>筛选：</strong>
+    <button class="toggle-filters" onclick="toggleFilterPanel()">展开筛选</button>
+  </div>
+  <div class="filters-body">
+    <div class="filter-row">
+      <span class="filter-label">稀有度：</span>
+      <div class="filter-buttons">
+        <button onclick="toggleFilter('rarity', 'SR')" data-type="rarity" data-value="SR">SR</button>
+        <button onclick="toggleFilter('rarity', 'SSR')" data-type="rarity" data-value="SSR">SSR</button>
+        <button onclick="toggleFilter('rarity', 'UR')" data-type="rarity" data-value="UR">UR</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">属性：</span>
+      <div class="filter-buttons">
+        <button onclick="toggleFilter('attribute', 'FIRE')" data-type="attribute" data-value="FIRE">Fire</button>
+        <button onclick="toggleFilter('attribute', 'WIND')" data-type="attribute" data-value="WIND">Wind</button>
+        <button onclick="toggleFilter('attribute', 'EARTH')" data-type="attribute" data-value="EARTH">Earth</button>
+        <button onclick="toggleFilter('attribute', 'ELECTRIC')" data-type="attribute" data-value="ELECTRIC">Electric</button>
+        <button onclick="toggleFilter('attribute', 'WATER')" data-type="attribute" data-value="WATER">Water</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">定位：</span>
+      <div class="filter-buttons">
+        <button onclick="toggleFilter('roleType', 'ATTACK')" data-type="roleType" data-value="ATTACK">Attack</button>
+        <button onclick="toggleFilter('roleType', 'DEFENSE')" data-type="roleType" data-value="DEFENSE">Defense</button>
+        <button onclick="toggleFilter('roleType', 'SPEED')" data-type="roleType" data-value="SPEED">Speed</button>
+        <button onclick="toggleFilter('roleType', 'SUPPORT')" data-type="roleType" data-value="SUPPORT">Support</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-buttons full-width">
+        <button onclick="resetFilters()">重置</button>
+        <button onclick="openEligibleSelector()">🎮 设置可上场角色</button>
+      </div>
+    </div>
+  </div>
 </div>
+
 
   <!-- <div class="pool-group">
     <h2>冒险者</h2>
@@ -163,7 +430,7 @@
   </div>
 
 
-  <div style="display: flex; gap: 20px; align-items: flex-start;">
+  <div id="main-layout">
   <div style="flex: 2;">
     <div class="pool-group">
       <h2>冒险者</h2>
@@ -178,7 +445,7 @@
   <div style="flex: 2;">
     <h2>队伍编队</h2>
     <div id="teams"></div>
-    <div style="margin-top: 10px;">
+    <div class="team-controls" style="margin-top: 10px;">
       <button onclick="addTeam()">添加新队伍</button>
       <button onclick="exportConfig()">📤 导出</button>
       <input type="file" accept="application/json" onchange="importConfig(event)" />
@@ -386,7 +653,12 @@ new Sortable(document.getElementById('teams'), {
       const teamNumber = availableTeamNumbers.length ? availableTeamNumbers.shift() : ++teamCounter;
 
       const wrapper = document.createElement("div");
-      wrapper.style.display = "flex";
+      // wrapper.style.display = "flex";
+      if (window.innerWidth <= 768) {
+        wrapper.style.display = "block";
+      } else {
+        wrapper.style.display = "flex";
+      }
       wrapper.style.alignItems = "stretch";
 
       const dragHandle = document.createElement("div");
@@ -495,7 +767,12 @@ new Sortable(document.getElementById('teams'), {
     const num = ++teamCounter;
 
     const wrapper = document.createElement("div");
-    wrapper.style.display = "flex";
+    // wrapper.style.display = "flex";
+    if (window.innerWidth <= 768) {
+        wrapper.style.display = "block";
+      } else {
+        wrapper.style.display = "flex";
+      }
     wrapper.style.alignItems = "stretch";
 
     const dragHandle = document.createElement("div");
@@ -801,6 +1078,13 @@ let eligibleCharacters = new Set(JSON.parse(localStorage.getItem("eligibleCharac
       closeEligibleSelector();
       if (typeof renderPool === 'function') renderPool();
     }
+    function toggleFilterPanel() {
+  const filters = document.getElementById("filters");
+  filters.classList.toggle("show");
+  const btn = filters.querySelector(".toggle-filters");
+  btn.textContent = filters.classList.contains("show") ? "收起筛选" : "展开筛选";
+}
+
   </script>
 </body>
 </html>
