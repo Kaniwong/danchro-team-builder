@@ -335,7 +335,7 @@ button {
 }
 
 .filter-label {
-  /* flex: 0 0 70px; */
+  flex: 0 0 70px;
   font-weight: bold;
   margin-bottom: 4px;
 }
@@ -507,12 +507,31 @@ body {
 .team-container {
   flex: 1;
 }
-
-.character-pool,
-.team-row,
-body {
-  touch-action: pan-y;
+@media (max-width: 768px) {
+  /* 隐藏左侧的冒险者／支援者池 */
+  .pool-group {
+    display: none;
+  }
+  #main-layout {
+    gap: 0;
 }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #ccc;
+}
+.modal-close {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 
   </style>
   <script>
@@ -708,10 +727,10 @@ body {
   <div id="eligibleSelector" style="display:none; background:#fff; border:1px solid #ccc; padding:10px; position:fixed; top:10%; left:50%; transform:translateX(-50%); max-height:80vh; overflow:auto; z-index:999;">
     <h3 data-t-key="setupYourPool">设置你的角色池</h3>
     <div id="eligibleList"></div>
-    <div style="margin-top: 15px;">
+    <!-- <div style="margin-top: 15px;">
       <button onclick="saveEligible()" data-t-key="save">✅ 保存</button>
       <button onclick="closeEligibleSelector()" data-t-key="close">❌ 关闭</button>
-    </div>
+    </div> -->
   </div>
 
 
@@ -764,17 +783,29 @@ new Sortable(document.getElementById('teams'), {
     const activeFilters = { rarity: null, attribute: null, roleType: null };
     const rarityOrder = ['UR','SSR','SR','R'];
     let pendingInsert = null;
+    let selectorMode = 'eligible'; // 或 'slot'
+
+    // 判断一个角色是否应该显示
+    function filterFunc(char) {
+      if (eligibleCharacters.size > 0 && !eligibleCharacters.has(char.name)) return false;
+      if (activeFilters.rarity   && char.rarity   !== activeFilters.rarity)   return false;
+      if (activeFilters.attribute && char.attribute !== activeFilters.attribute) return false;
+      if (activeFilters.roleType  && char.roleType  !== activeFilters.roleType)  return false;
+      return true;
+    }
+
+    // 按稀有度+名字排序
+    function sortFunc(a, b) {
+      const ra = rarityOrder.indexOf(a.rarity), rb = rarityOrder.indexOf(b.rarity);
+      if (ra !== rb) return ra - rb;
+      return (a.baseName||a.name).localeCompare(b.baseName||b.name, currentLang);
+    }
 
     window.addEventListener("DOMContentLoaded", () => {
        document.getElementById("languageSelector").value = currentLang; // ✅ 初始化选中项
       renderPool();
       loadFromLocal();
       applyTranslations();
-
-      document.querySelectorAll(".character-pool, .team-row").forEach(el => {
-    el.addEventListener("touchstart",  e => e.stopImmediatePropagation(), { capture: true, passive: true });
-    el.addEventListener("touchmove",   e => e.stopImmediatePropagation(), { capture: true, passive: true });
-  });
     });
 
     function toggleFilter(type, value) {
@@ -801,23 +832,23 @@ new Sortable(document.getElementById('teams'), {
       advBox.innerHTML = "";
       supBox.innerHTML = "";
 
-      const filterFunc = char => {
-         // ✅ 没有设置时默认全显示
-        if (eligibleCharacters.size > 0 && !eligibleCharacters.has(char.name)) return false;
-        if (activeFilters.rarity   && char.rarity   !== activeFilters.rarity)   return false;
-        if (activeFilters.attribute && char.attribute !== activeFilters.attribute) return false;
-        if (activeFilters.roleType  && char.roleType  !== activeFilters.roleType)  return false;
-        return true;
-      };
+      // const filterFunc = char => {
+      //    // ✅ 没有设置时默认全显示
+      //   if (eligibleCharacters.size > 0 && !eligibleCharacters.has(char.name)) return false;
+      //   if (activeFilters.rarity   && char.rarity   !== activeFilters.rarity)   return false;
+      //   if (activeFilters.attribute && char.attribute !== activeFilters.attribute) return false;
+      //   if (activeFilters.roleType  && char.roleType  !== activeFilters.roleType)  return false;
+      //   return true;
+      // };
 
-      const sortFunc = (a, b) => {
-        const ra = rarityOrder.indexOf(a.rarity);
-        const rb = rarityOrder.indexOf(b.rarity);
-        if (ra !== rb) return ra - rb;
-        const nameA = (a.baseName || a.name).toString();
-        const nameB = (b.baseName || b.name).toString();
-        return nameA.localeCompare(nameB, 'zh');
-      };
+      // const sortFunc = (a, b) => {
+      //   const ra = rarityOrder.indexOf(a.rarity);
+      //   const rb = rarityOrder.indexOf(b.rarity);
+      //   if (ra !== rb) return ra - rb;
+      //   const nameA = (a.baseName || a.name).toString();
+      //   const nameB = (b.baseName || b.name).toString();
+      //   return nameA.localeCompare(nameB, 'zh');
+      // };
 
       characters.adventurers
         .filter(filterFunc)
@@ -1370,6 +1401,18 @@ let eligibleCharacters = new Set(JSON.parse(localStorage.getItem("eligibleCharac
         checkbox.type = "checkbox";
         checkbox.value = char.name;
         checkbox.checked = eligibleCharacters.has(char.name);
+        checkbox.checked = eligibleCharacters.has(char.name);
+    // ✅ 自动保存选中状态
+    checkbox.addEventListener("change", () => {
+     if (checkbox.checked) eligibleCharacters.add(char.name);
+     else                  eligibleCharacters.delete(char.name);
+      // 写回 localStorage
+      localStorage.setItem(
+        "eligibleCharacters",
+        JSON.stringify(Array.from(eligibleCharacters))
+      );
+      renderPool();   // 立即刷新左侧池子状态
+    });
 
         const img = document.createElement("img");
         img.src = char.img;
@@ -1392,14 +1435,14 @@ let eligibleCharacters = new Set(JSON.parse(localStorage.getItem("eligibleCharac
       document.getElementById("eligibleSelector").style.display = "none";
     }
 
-    function saveEligible() {
-      const selected = Array.from(document.querySelectorAll("#eligibleList input:checked"))
-        .map(el => el.value);
-      eligibleCharacters = new Set(selected);
-      localStorage.setItem("eligibleCharacters", JSON.stringify(selected));
-      closeEligibleSelector();
-      if (typeof renderPool === 'function') renderPool();
-    }
+    // function saveEligible() {
+    //   const selected = Array.from(document.querySelectorAll("#eligibleList input:checked"))
+    //     .map(el => el.value);
+    //   eligibleCharacters = new Set(selected);
+    //   localStorage.setItem("eligibleCharacters", JSON.stringify(selected));
+    //   closeEligibleSelector();
+    //   if (typeof renderPool === 'function') renderPool();
+    // }
     function toggleFilterPanel() {
   const filters = document.getElementById("filters");
   filters.classList.toggle("show");
@@ -1409,6 +1452,74 @@ let eligibleCharacters = new Set(JSON.parse(localStorage.getItem("eligibleCharac
     ? t("collapseFilter")
     : t("expandFilter");
 }
+function openSlotSelector(slot) {
+  const role = slot.dataset.type;                     // "adventurer" or "supporter"
+  const titleKey = role === 'adventurer' 
+    ? 'adventurerLabel' 
+    : 'supporterLabel';
+
+  // 更新弹窗标题
+  const h3 = document.querySelector('#eligibleSelector h3');
+  h3.setAttribute('data-t-key', null);
+  h3.textContent = t(titleKey);
+
+  // 从 characters pool 里筛+排，再渲染按钮
+  const list = characters[role + 's']
+    .filter(filterFunc)
+    .sort(sortFunc);
+
+  const container = document.getElementById('eligibleList');
+  container.innerHTML = '';
+
+  list.forEach(char => {
+    const btn = document.createElement('button');
+    btn.className = 'mobile-char-btn';
+    // img 元素
+    btn.innerHTML = `<img src="${char.img}" alt="${char.baseName||char.name}" 
+                          title="${char.baseName||char.name}">`;
+
+    if (usedNames.has(char.name)) {
+      // 已经在某个队伍里：灰掉并禁用
+      btn.disabled = true;
+      btn.classList.add('used');
+    } else {
+      // 没被选过，点击就填入
+      btn.onclick = () => {
+        setSlotImage(slot, {
+          name:     char.name,
+          img:      char.img,
+          baseName: char.baseName,
+          role
+        });
+        usedNames.add(char.name);
+        slotMap.set(char.name, slot);
+        renderPool();    // 更新左侧或 PC 池子样式
+        saveToLocal();
+        closeEligibleSelector();
+      };
+    }
+
+    container.appendChild(btn);
+  });
+
+  // 显示弹窗
+  document.getElementById('overlay').style.display         = 'block';
+  document.getElementById('eligibleSelector').style.display = 'block';
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobile) {
+    document.getElementById("teams").addEventListener("click", e => {
+      const slot = e.target.closest(".slot");
+      if (!slot) return;
+      // 如果格子里已经有 img，就忽略（除非你想支持换人）
+      if (slot.querySelector("img")) return;
+      openSlotSelector(slot);
+    });
+  }
+});
+
 
 
 let currentLang = localStorage.getItem("lang") || "zh";
@@ -1473,8 +1584,8 @@ function applyTranslations() {
   setTextAll("eligible");
   setTextAll("addTeam");
   setTextAll("export");
-  setTextAll("save");
-  setTextAll("close");
+  // setTextAll("save");
+  // setTextAll("close");
 
   // ✅ 设置那些是“标签的前一个元素”
   setTextAll("rarity");
@@ -1486,14 +1597,14 @@ setTextAll("supporterLabel");
 setTextAll("teamBuilderLabel");
 setTextAll("setupYourPool");
 
-setTextAll("collapseFilter");
+// setTextAll("collapseFilter");
 setTextAll("expandFilter");
 setTextAll("import");
 setTextAll("clear");
 setTextAll("deleteTeam");
 
-setTextAll("clearConfirm");
-setTextAll("deleteConfirm");
+// setTextAll("clearConfirm");
+// setTextAll("deleteConfirm");
 // ⇒ 所有属性筛选按钮
 document
   .querySelectorAll('button[data-type="attribute"]')
