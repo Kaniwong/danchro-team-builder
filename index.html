@@ -463,7 +463,7 @@ button {
     </div>
   </div>
 
-  <div style="flex: 2;">
+  <div style="flex: 1;">
     <h2>队伍编队</h2>
     <div id="teams"></div>
     <div class="team-controls" style="margin-top: 10px;">
@@ -1038,6 +1038,7 @@ wrapper.addEventListener("drop", () => {
 
   renderPool();
   saveToLocal();
+  renderFromData(getCurrentData()); // ✅ 强制刷新绑定
   pendingInsert = null;
 });
 
