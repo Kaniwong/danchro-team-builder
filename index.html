@@ -25,12 +25,13 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin: 10px 0;
+  margin: 15px 0;
+  justify-content: center;
 }
 .character,
 .slot {
-  width: 80px;
-  height: 80px;
+  width: 70px;
+  height: 70px;
   border: 2px dashed #ccc;
   border-radius: 10px;
   background-color: white;
@@ -186,8 +187,8 @@ button {
   /* 图标缩小 */
   .character,
   .slot {
-    width: 50px;
-    height: 50px;
+    width: 45px;
+    height: 45px;
   }
 
   .character-pool,
@@ -334,7 +335,7 @@ button {
 }
 
 .filter-label {
-  flex: 0 0 70px;
+  /* flex: 0 0 70px; */
   font-weight: bold;
   margin-bottom: 4px;
 }
@@ -381,20 +382,277 @@ button {
   
 }
 
+/* 顶部布局：标题左、语言下拉右 */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;  /* 和下面内容保持距离 */
+}
+
+/* （可选）让下拉框和按钮尺寸更合适 */
+.app-header select {
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+:root {
+  --primary: #007bff;
+  --primary-hover: #0056b3;
+  --border-light: #ccc;
+  --bg-card: #fff;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* 全局按钮风格 */
+button, .toggle-filters {
+  padding: 6px 12px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+button:hover, .toggle-filters:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary-hover);
+}
+button:active {
+  background: var(--primary-hover);
+}
+.team-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px var(--shadow);
+  transition: box-shadow 0.2s;
+}
+.team-container:hover {
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.slot, .character {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  transition: transform 0.15s;
+}
+.slot:hover, .character:hover {
+  transform: scale(1.05);
+}
+.filters-header {
+  padding: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 4px 4px 0 0;
+}
+.filters-body {
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+}
+.filter-row {
+  margin-bottom: 8px;
+}
+.filter-label {
+  width: 80px;
+}
+.filter-buttons button {
+  margin: 0 4px 4px 0;
+}
+body {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f3f4f6;
+}
+.app-header {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 20px;
+}
+#main-layout {
+  gap: 30px;
+}
+.pool-group h2 {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+.team-controls {
+  gap: 12px;
+}
+body {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f3f4f6;
+}
+.app-header {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 20px;
+}
+#main-layout {
+  gap: 30px;
+}
+.pool-group h2 {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+.team-controls {
+  gap: 12px;
+}
+.team-container {
+  flex: 1;
+}
 
   </style>
+  <script>
+    const i18n = {
+  zh: {
+    title: "角色编队工具",
+    filterLabel: "筛选：",
+    rarity: "稀有度：",
+    attribute: "属性：",
+    roleType: "定位：",
+    reset: "重置",
+    eligible: "🎮 设置可上场角色",
+    addTeam: "添加新队伍",
+    export: "📤 导出",
+    deleteTeam: "删除队伍",
+    clear: "清空",
+    import: "导入配置",
+    save: "✅ 保存",
+    close: "❌ 关闭",
+    expandFilter: "展开筛选",
+    collapseFilter: "收起筛选",
+    team: name => `队伍 ${name}`,
+    conflictAlert: name => `该小组中不能出现重复角色：${name}`,
+    dropConflict: "拖拽后会导致同组出现重复角色，操作被取消！",
+    clearConfirm: name => `确定清空 ${name}?`,
+    deleteConfirm: name => `确定删除 ${name}?`,
+    adventurerLabel: "冒险者",
+    supporterLabel: "支援者",
+    teamBuilderLabel: "队伍编队",
+    setupYourPool: "设置你的角色池",
+    eligibleListMissing: "找不到可选列表元素，请检查 HTML 是否正确插入！",
+    import: "导入配置",
+    attribute_FIRE: "火",
+    attribute_WIND: "风",
+    attribute_EARTH: "土",
+    attribute_ELECTRIC: "雷",
+    attribute_WATER: "水",
+    roleType_ATTACK:  "攻击",
+    roleType_DEFENSE: "防御",
+    roleType_SPEED:   "速度",
+    roleType_SUPPORT: "辅助",
+  },
+  en: {
+    title: "Team Builder",
+    filterLabel: "Filters:",
+    rarity: "Rarity:",
+    attribute: "Attribute:",
+    roleType: "Role:",
+    reset: "Reset",
+    eligible: "🎮 Select Eligible Characters",
+    addTeam: "Add Team",
+    export: "📤 Export",
+    deleteTeam: "Delete Team",
+    clear: "Clear",
+    import: "Import Config",
+    save: "✅ Save",
+    close: "❌ Close",
+    expandFilter: "Expand Filters",
+    collapseFilter: "Collapse Filters",
+    team: name => `Team ${name}`,
+    conflictAlert: name => `Duplicate character in group: ${name}`,
+    dropConflict: "This move would create a duplicate character. Action cancelled.",
+    clearConfirm: name => `Clear ${name}?`,
+    deleteConfirm: name => `Delete ${name}?`,
+    adventurerLabel: "Adventurers",
+    supporterLabel: "Supporters",
+    teamBuilderLabel: "Team Formation",
+    setupYourPool: "Setup Your Character Pool",
+    eligibleListMissing: "Cannot find eligibleList container—please check your HTML.",
+    import: "Import Config",
+    attribute_FIRE: "Fire",
+    attribute_WIND: "Wind",
+    attribute_EARTH: "Earth",
+    attribute_ELECTRIC: "Electric",
+    attribute_WATER: "Water",
+    roleType_ATTACK:  "Attack",
+    roleType_DEFENSE: "Defense",
+    roleType_SPEED:   "Speed",
+    roleType_SUPPORT: "Support",
+  },
+  ja: {
+    title: "編成ツール",
+    filterLabel: "フィルター：",
+    rarity: "レアリティ：",
+    attribute: "属性：",
+    roleType: "役割：",
+    reset: "リセット",
+    eligible: "🎮 使用可能キャラ設定",
+    addTeam: "チーム追加",
+    export: "📤 エクスポート",
+    deleteTeam: "チーム削除",
+    clear: "クリア",
+    import: "インポート",
+    save: "✅ 保存",
+    close: "❌ 閉じる",
+    expandFilter: "フィルターを展開",
+    collapseFilter: "フィルターを折りたたむ",
+    team: name => `チーム ${name}`,
+    conflictAlert: name => `同じキャラクターが含まれています：${name}`,
+    dropConflict: "同じキャラがいるため、この操作はキャンセルされました。",
+    adventurerLabel: "冒険者",
+    supporterLabel: "サポーター",
+    teamBuilderLabel: "チーム編成",
+    setupYourPool: "使用キャラの設定",
+    eligibleListMissing: "eligibleList 要素が見つかりません。HTML 挿入を確認してください。",
+    import: "インポート",
+    attribute_FIRE: "火",
+    attribute_WIND: "風",
+    attribute_EARTH: "土",
+    attribute_ELECTRIC: "雷",
+    attribute_WATER: "水",
+    roleType_ATTACK:  "攻撃",
+    roleType_DEFENSE: "防御",
+    roleType_SPEED:   "スピード",
+    roleType_SUPPORT: "サポート",
+    clearConfirm: name => `${name} をクリアしますか？`,
+    deleteConfirm: name => `${name} を削除しますか？`,
+  }
+};
+
+  </script>
 </head>
 <body>
-  <h1>角色编队工具</h1>
+  <header class="app-header">
+    <h1 data-t-key="title"></h1>
+    <select id="languageSelector" onchange="changeLanguage(this.value)">
+      <option value="zh">中文</option>
+      <option value="en">English</option>
+      <option value="ja">日本語</option>
+    </select>
+  </header>
+  <!-- <select id="languageSelector" onchange="changeLanguage(this.value)">
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+    <option value="ja">日本語</option>
+  </select>
+  <h1>角色编队工具</h1> -->
 
 <div id="filters" class="filters">
   <div class="filters-header">
     <strong>筛选：</strong>
-    <button class="toggle-filters" onclick="toggleFilterPanel()">展开筛选</button>
+    <button class="toggle-filters" data-t-key="expandFilter" onclick="toggleFilterPanel()">展开筛选</button>
   </div>
   <div class="filters-body">
     <div class="filter-row">
-      <span class="filter-label">稀有度：</span>
+      <span class="filter-label" data-t-key="rarity">稀有度：</span>
       <div class="filter-buttons">
         <button onclick="toggleFilter('rarity', 'SR')" data-type="rarity" data-value="SR">SR</button>
         <button onclick="toggleFilter('rarity', 'SSR')" data-type="rarity" data-value="SSR">SSR</button>
@@ -402,28 +660,28 @@ button {
       </div>
     </div>
     <div class="filter-row">
-      <span class="filter-label">属性：</span>
+      <span class="filter-label" data-t-key="attribute">属性：</span>
       <div class="filter-buttons">
-        <button onclick="toggleFilter('attribute', 'FIRE')" data-type="attribute" data-value="FIRE">Fire</button>
-        <button onclick="toggleFilter('attribute', 'WIND')" data-type="attribute" data-value="WIND">Wind</button>
-        <button onclick="toggleFilter('attribute', 'EARTH')" data-type="attribute" data-value="EARTH">Earth</button>
-        <button onclick="toggleFilter('attribute', 'ELECTRIC')" data-type="attribute" data-value="ELECTRIC">Electric</button>
-        <button onclick="toggleFilter('attribute', 'WATER')" data-type="attribute" data-value="WATER">Water</button>
+        <button onclick="toggleFilter('attribute', 'FIRE')" data-type="attribute" data-value="FIRE"></button>
+        <button onclick="toggleFilter('attribute', 'WIND')" data-type="attribute" data-value="WIND"></button>
+        <button onclick="toggleFilter('attribute', 'EARTH')" data-type="attribute" data-value="EARTH"></button>
+        <button onclick="toggleFilter('attribute', 'ELECTRIC')" data-type="attribute" data-value="ELECTRIC"></button>
+        <button onclick="toggleFilter('attribute', 'WATER')" data-type="attribute" data-value="WATER"></button>
       </div>
     </div>
     <div class="filter-row">
-      <span class="filter-label">定位：</span>
+      <span class="filter-label" data-t-key="roleType">定位：</span>
       <div class="filter-buttons">
-        <button onclick="toggleFilter('roleType', 'ATTACK')" data-type="roleType" data-value="ATTACK">Attack</button>
-        <button onclick="toggleFilter('roleType', 'DEFENSE')" data-type="roleType" data-value="DEFENSE">Defense</button>
-        <button onclick="toggleFilter('roleType', 'SPEED')" data-type="roleType" data-value="SPEED">Speed</button>
-        <button onclick="toggleFilter('roleType', 'SUPPORT')" data-type="roleType" data-value="SUPPORT">Support</button>
+        <button onclick="toggleFilter('roleType', 'ATTACK')" data-type="roleType" data-value="ATTACK"></button>
+        <button onclick="toggleFilter('roleType', 'DEFENSE')" data-type="roleType" data-value="DEFENSE"></button>
+        <button onclick="toggleFilter('roleType', 'SPEED')" data-type="roleType" data-value="SPEED"></button>
+        <button onclick="toggleFilter('roleType', 'SUPPORT')" data-type="roleType" data-value="SUPPORT"></button>
       </div>
     </div>
     <div class="filter-row">
       <div class="filter-buttons full-width">
-        <button onclick="resetFilters()">重置</button>
-        <button onclick="openEligibleSelector()">🎮 设置可上场角色</button>
+        <button onclick="resetFilters()" data-t-key="reset">重置</button>
+        <button onclick="openEligibleSelector()" data-t-key="eligible">🎮 设置可上场角色</button>
       </div>
     </div>
   </div>
@@ -442,34 +700,37 @@ button {
  <div id="overlay" onclick="closeEligibleSelector()"></div>
   
   <div id="eligibleSelector" style="display:none; background:#fff; border:1px solid #ccc; padding:10px; position:fixed; top:10%; left:50%; transform:translateX(-50%); max-height:80vh; overflow:auto; z-index:999;">
-    <h3>设置你的角色池</h3>
+    <h3 data-t-key="setupYourPool">设置你的角色池</h3>
     <div id="eligibleList"></div>
     <div style="margin-top: 15px;">
-      <button onclick="saveEligible()">✅ 保存</button>
-      <button onclick="closeEligibleSelector()">❌ 关闭</button>
+      <button onclick="saveEligible()" data-t-key="save">✅ 保存</button>
+      <button onclick="closeEligibleSelector()" data-t-key="close">❌ 关闭</button>
     </div>
   </div>
 
 
   <div id="main-layout">
-  <div style="flex: 2;">
+  <div style="flex: 1;">
     <div class="pool-group">
-      <h2>冒险者</h2>
+      <h2 data-t-key="adventurerLabel">冒险者</h2>
       <div class="character-pool" id="adventurers"></div>
     </div>
     <div class="pool-group">
-      <h2>支援者</h2>
+      <h2 data-t-key="supporterLabel">支援者</h2>
       <div class="character-pool" id="supporters"></div>
     </div>
   </div>
 
   <div style="flex: 1;">
-    <h2>队伍编队</h2>
+    <h2 data-t-key="teamBuilderLabel">队伍编队</h2>
     <div id="teams"></div>
     <div class="team-controls" style="margin-top: 10px;">
-      <button onclick="addTeam()">添加新队伍</button>
-      <button onclick="exportConfig()">📤 导出</button>
-      <input type="file" accept="application/json" onchange="importConfig(event)" />
+      <button onclick="addTeam()" data-t-key="addTeam">添加新队伍</button>
+      <button onclick="exportConfig()" data-t-key="export">📤 导出</button>
+      <!-- <input type="file" accept="application/json" onchange="importConfig(event)" /> -->
+      <button onclick="fileInput.click()" data-t-key="import">📂 导入</button>
+<input id="fileInput" type="file" accept="application/json"
+       style="display:none" onchange="importConfig(event)" />
     </div>
   </div>
 </div>
@@ -499,8 +760,10 @@ new Sortable(document.getElementById('teams'), {
     let pendingInsert = null;
 
     window.addEventListener("DOMContentLoaded", () => {
+       document.getElementById("languageSelector").value = currentLang; // ✅ 初始化选中项
       renderPool();
       loadFromLocal();
+      applyTranslations();
     });
 
     function toggleFilter(type, value) {
@@ -598,7 +861,8 @@ new Sortable(document.getElementById('teams'), {
         const pairedSlot = row.children[type === "adventurer" ? index + 1 : index - 1];
         const pairedImg = pairedSlot.querySelector("img");
         if (pairedImg && pairedImg.alt.toLowerCase() === displayName.toLowerCase()) {
-          alert(`该小组中不能出现重复角色：${displayName.replace(/_+/g,' ')}`);
+          // alert(`该小组中不能出现重复角色：${displayName.replace(/_+/g,' ')}`);
+          alert(t("conflictAlert", displayName.replace(/_+/g, ' ')));
           return;
         }
 
@@ -623,7 +887,8 @@ new Sortable(document.getElementById('teams'), {
         if (!checkAllTeamsNoConflict()) {
           // 冲突：撤回这次插入
           slot.innerHTML = "";
-          alert("拖拽后会导致同组出现重复角色，操作被取消！");
+          // alert("拖拽后会导致同组出现重复角色，操作被取消！");
+          alert(t("dropConflict"));
           loadFromLocal();    // ← 彻底重刷队伍（从本地存储恢复）
           renderPool(); // 刷新回正常
           return;
@@ -696,22 +961,29 @@ new Sortable(document.getElementById('teams'), {
       const header = document.createElement("div"); header.className = "team-header";
       const label = document.createElement("div"); label.className = "team-label";
       label.contentEditable = true; label.spellcheck = false;
-      label.textContent = `队伍 ${teamNumber}`;
+      // label.textContent = `队伍 ${teamNumber}`;
+      label.textContent = t("team", teamNumber);
       label.dataset.defaultName = label.textContent;
       label.addEventListener("keypress", e => { if(e.key==="Enter"){ e.preventDefault(); label.blur(); }});
       label.addEventListener("blur", () => { if(label.textContent.trim()==="") label.textContent = label.dataset.defaultName; saveToLocal(); });
       const controls = document.createElement("div");
-      const clearBtn = document.createElement("button"); clearBtn.textContent="清空";
+      const clearBtn = document.createElement("button");
+      clearBtn.setAttribute("data-t-key", "clear");
+      clearBtn.textContent = t("clear");
       clearBtn.onclick = () => {
-        if(!confirm(`确定清空 ${label.textContent}?`)) return;
+        if (!confirm(t("clearConfirm", label.textContent))) return;
         row.querySelectorAll(".slot").forEach(s=>{const i=s.querySelector("img"); if(i){usedNames.delete(i.getAttribute("data-name")); slotMap.delete(i.getAttribute("data-name")); s.innerHTML="";}});
         renderPool(); saveToLocal();
       };
-      const deleteBtn = document.createElement("button"); deleteBtn.textContent="删除队伍";
+      const deleteBtn = document.createElement("button"); 
+      deleteBtn.setAttribute("data-t-key", "deleteTeam");
+      deleteBtn.textContent = t("deleteTeam");
       deleteBtn.onclick = () => {
-        if(!confirm(`确定删除 ${label.textContent}?`)) return;
+        // if(!confirm(`确定删除 ${label.textContent}?`)) return;
+        if (!confirm(t("deleteConfirm", label.textContent))) return;
         container.querySelectorAll(".slot img").forEach(i=>{usedNames.delete(i.getAttribute("data-name")); slotMap.delete(i.getAttribute("data-name"));});
-        container.remove(); availableTeamNumbers.push(teamNumber); renderPool(); saveToLocal();
+        wrapper.remove();
+        availableTeamNumbers.push(teamNumber); renderPool(); saveToLocal();
       };
       controls.appendChild(clearBtn); controls.appendChild(deleteBtn);
       header.appendChild(label); header.appendChild(controls);
@@ -724,6 +996,7 @@ new Sortable(document.getElementById('teams'), {
       container.appendChild(row);
       document.getElementById("teams").appendChild(wrapper);
       saveToLocal();
+      applyTranslations();
     }
 
     function getCurrentData() {
@@ -828,9 +1101,12 @@ new Sortable(document.getElementById('teams'), {
     const controls = document.createElement("div");
 
     const clearBtn = document.createElement("button");
-    clearBtn.textContent = "清空";
+    // clearBtn.textContent = "清空";
+    clearBtn.setAttribute("data-t-key", "clear");
+    clearBtn.textContent = t("clear");
     clearBtn.onclick = () => {
-      if (!confirm(`确定清空 ${label.textContent}?`)) return;
+      // if (!confirm(`确定清空 ${label.textContent}?`)) return;
+      if (!confirm(t("clearConfirm", label.textContent))) return;
       row.querySelectorAll(".slot").forEach(s => {
         const i = s.querySelector("img");
         if (i) {
@@ -843,9 +1119,12 @@ new Sortable(document.getElementById('teams'), {
     };
 
     const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "删除队伍";
+    // deleteBtn.textContent = "删除队伍";
+    deleteBtn.setAttribute("data-t-key", "deleteTeam");
+    deleteBtn.textContent = t("deleteTeam");
     deleteBtn.onclick = () => {
-      if (!confirm(`确定删除 ${label.textContent}?`)) return;
+      // if (!confirm(`确定删除 ${label.textContent}?`)) return;
+      if (!confirm(t("deleteConfirm", label.textContent))) return;
       container.querySelectorAll(".slot img").forEach(i => {
         usedNames.delete(i.getAttribute("data-name"));
         slotMap.delete(i.getAttribute("data-name"));
@@ -888,7 +1167,16 @@ new Sortable(document.getElementById('teams'), {
     document.getElementById("teams").appendChild(wrapper);
   });
 
+  if (data.translations) {
+    Object.assign(i18n, data.translations);
+  }
+  // —— 关键：如果带了 language，就设置回来
+  if (data.language) {
+    changeLanguage(data.language);
+  }
+
   renderPool();
+  applyTranslations();
 }
 
     let scrollTimer = null;
@@ -1053,7 +1341,8 @@ let eligibleCharacters = new Set(JSON.parse(localStorage.getItem("eligibleCharac
     function openEligibleSelector() {
       const container = document.getElementById("eligibleList");
       if (!container) {
-        alert("找不到 eligibleList 元素，请检查 HTML 是否正确插入！");
+        // alert("找不到 eligibleList 元素，请检查 HTML 是否正确插入！");
+        alert(t("eligibleListMissing"));
         return;
       }
       container.innerHTML = "";
@@ -1104,7 +1393,118 @@ let eligibleCharacters = new Set(JSON.parse(localStorage.getItem("eligibleCharac
   const filters = document.getElementById("filters");
   filters.classList.toggle("show");
   const btn = filters.querySelector(".toggle-filters");
-  btn.textContent = filters.classList.contains("show") ? "收起筛选" : "展开筛选";
+  // btn.textContent = filters.classList.contains("show") ? "收起筛选" : "展开筛选";
+  btn.textContent = filters.classList.contains("show")
+    ? t("collapseFilter")
+    : t("expandFilter");
+}
+
+
+let currentLang = localStorage.getItem("lang") || "zh";
+
+function t(key, ...args) {
+  const str = i18n[currentLang][key];
+  return typeof str === "function" ? str(...args) : str;
+}
+
+function changeLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem("lang", lang);
+  applyTranslations();
+}
+
+function applyTranslations() {
+  const missing = [];
+
+  // 设置单个元素的文本
+  function setText(selector, key) {
+    const el = document.querySelector(selector);
+    if (el) {
+      el.textContent = t(key);
+    } else {
+      missing.push(`Missing element for selector: ${selector}`);
+    }
+  }
+
+  // 设置多个具有相同 data-t-key 的元素（直接翻译元素本身）
+  function setTextAll(key) {
+    const els = document.querySelectorAll(`[data-t-key="${key}"]`);
+    if (els.length === 0) {
+      missing.push(`No elements with data-t-key="${key}"`);
+    }
+    els.forEach(el => {
+      el.textContent = t(key);
+    });
+  }
+
+  // 设置多个，但翻译目标是它的前一个兄弟元素（比如 label 在前）
+  function setPreviousTextAll(key) {
+    const els = document.querySelectorAll(`[data-t-key="${key}"]`);
+    if (els.length === 0) {
+      missing.push(`No elements with data-t-key="${key}"`);
+    }
+    els.forEach(el => {
+      if (el.previousElementSibling) {
+        el.previousElementSibling.textContent = t(key);
+      } else {
+        missing.push(`Element with data-t-key="${key}" has no previous sibling`);
+      }
+    });
+  }
+
+  // ✅ 设置主要标题和静态位置
+  setText("h1", "title");
+  setText(".filters-header strong", "filterLabel");
+
+  // ✅ 设置所有 data-t-key
+  setTextAll("expandFilter");
+  setTextAll("reset");
+  setTextAll("eligible");
+  setTextAll("addTeam");
+  setTextAll("export");
+  setTextAll("save");
+  setTextAll("close");
+
+  // ✅ 设置那些是“标签的前一个元素”
+  setTextAll("rarity");
+  setTextAll("attribute");
+  setTextAll("roleType");
+
+  setTextAll("adventurerLabel");
+setTextAll("supporterLabel");
+setTextAll("teamBuilderLabel");
+setTextAll("setupYourPool");
+
+setTextAll("collapseFilter");
+setTextAll("expandFilter");
+setTextAll("import");
+setTextAll("clear");
+setTextAll("deleteTeam");
+
+setTextAll("clearConfirm");
+setTextAll("deleteConfirm");
+// ⇒ 所有属性筛选按钮
+document
+  .querySelectorAll('button[data-type="attribute"]')
+  .forEach(btn => {
+    const val = btn.dataset.value;               // e.g. "FIRE"
+    const key = `attribute_${val}`;              // 对应 i18n 里的 attribute_FIRE
+    btn.textContent = t(key);
+  });
+
+  // ⇒ 所有定位筛选按钮
+document
+  .querySelectorAll('button[data-type="roleType"]')
+  .forEach(btn => {
+    const val = btn.dataset.value;              // e.g. "ATTACK"
+    const key = `roleType_${val}`;              // 对应 i18n 里的 roleType_ATTACK
+    btn.textContent = t(key);
+  });
+
+  // 🚨 输出缺失项
+  if (missing.length > 0) {
+    console.warn("⚠️ 以下元素未找到或结构异常：\n" + missing.join("\n"));
+  }
 }
 
   </script>
