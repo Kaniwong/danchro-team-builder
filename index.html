@@ -770,6 +770,11 @@ new Sortable(document.getElementById('teams'), {
       renderPool();
       loadFromLocal();
       applyTranslations();
+
+      document.querySelectorAll(".character-pool, .team-row").forEach(el => {
+    el.addEventListener("touchstart",  e => e.stopImmediatePropagation(), { capture: true, passive: true });
+    el.addEventListener("touchmove",   e => e.stopImmediatePropagation(), { capture: true, passive: true });
+  });
     });
 
     function toggleFilter(type, value) {
