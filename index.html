@@ -1529,60 +1529,110 @@
         ? t("collapseFilter")
         : t("expandFilter");
     }
+    // function openSlotSelector(slot) {
+    //   const role = slot.dataset.type;                     // "adventurer" or "supporter"
+    //   const titleKey = role === 'adventurer'
+    //     ? 'adventurerLabel'
+    //     : 'supporterLabel';
+
+    //   // 更新弹窗标题
+    //   const h3 = document.querySelector('#eligibleSelector h3');
+    //   h3.setAttribute('data-t-key', null);
+    //   h3.textContent = t(titleKey);
+
+    //   // 从 characters pool 里筛+排，再渲染按钮
+    //   const list = characters[role + 's']
+    //     .filter(filterFunc)
+    //     .sort(sortFunc);
+
+    //   const container = document.getElementById('eligibleList');
+    //   container.innerHTML = '';
+
+    //   list.forEach(char => {
+    //     const btn = document.createElement('button');
+    //     btn.className = 'mobile-char-btn';
+    //     // img 元素
+    //     btn.innerHTML = `<img src="${char.img}" alt="${char.baseName || char.name}" 
+    //                       title="${char.baseName || char.name}">`;
+
+    //     if (usedNames.has(char.name)) {
+    //       // 已经在某个队伍里：灰掉并禁用
+    //       btn.disabled = true;
+    //       btn.classList.add('used');
+    //     } else {
+    //       // 没被选过，点击就填入
+    //       btn.onclick = () => {
+    //         setSlotImage(slot, {
+    //           name: char.name,
+    //           img: char.img,
+    //           baseName: char.baseName,
+    //           role
+    //         });
+    //         usedNames.add(char.name);
+    //         slotMap.set(char.name, slot);
+    //         renderPool();    // 更新左侧或 PC 池子样式
+    //         saveToLocal();
+    //         closeEligibleSelector();
+    //       };
+    //     }
+
+    //     container.appendChild(btn);
+    //   });
+
+    //   // 显示弹窗
+    //   document.getElementById('overlay').style.display = 'block';
+    //   document.getElementById('eligibleSelector').style.display = 'block';
+    // }
+
     function openSlotSelector(slot) {
-      const role = slot.dataset.type;                     // "adventurer" or "supporter"
-      const titleKey = role === 'adventurer'
-        ? 'adventurerLabel'
-        : 'supporterLabel';
+  const role = slot.dataset.type;                  // adventurer / supporter
+  const row  = slot.closest('.team-row');
+  const idx  = Array.from(row.children).indexOf(slot);
+  const pair = row.children[role === 'adventurer' ? idx + 1 : idx - 1];
 
-      // 更新弹窗标题
-      const h3 = document.querySelector('#eligibleSelector h3');
-      h3.setAttribute('data-t-key', null);
-      h3.textContent = t(titleKey);
+  // 同组对面格子的“显示名”（和拖拽逻辑保持一致）
+  const pairDisplay = pair.querySelector('img')?.getAttribute('alt')?.toLowerCase();
 
-      // 从 characters pool 里筛+排，再渲染按钮
-      const list = characters[role + 's']
-        .filter(filterFunc)
-        .sort(sortFunc);
+  // 标题
+  document.querySelector('#eligibleSelector h3')
+          .textContent = t(role === 'adventurer' ? 'adventurerLabel' : 'supporterLabel');
 
-      const container = document.getElementById('eligibleList');
-      container.innerHTML = '';
+  // 过滤：全局筛选 + 未被 usedNames + 显示名不能等于 pairDisplay
+  const list = characters[role + 's']
+      .filter(c =>
+        filterFunc(c) &&
+        !usedNames.has(c.name) &&
+        ( (c.baseName || c.name).toLowerCase() !== pairDisplay )
+      )
+      .sort(sortFunc);
 
-      list.forEach(char => {
-        const btn = document.createElement('button');
-        btn.className = 'mobile-char-btn';
-        // img 元素
-        btn.innerHTML = `<img src="${char.img}" alt="${char.baseName || char.name}" 
-                          title="${char.baseName || char.name}">`;
+  const box = document.getElementById('eligibleList');
+  box.innerHTML = '';
 
-        if (usedNames.has(char.name)) {
-          // 已经在某个队伍里：灰掉并禁用
-          btn.disabled = true;
-          btn.classList.add('used');
-        } else {
-          // 没被选过，点击就填入
-          btn.onclick = () => {
-            setSlotImage(slot, {
-              name: char.name,
-              img: char.img,
-              baseName: char.baseName,
-              role
-            });
-            usedNames.add(char.name);
-            slotMap.set(char.name, slot);
-            renderPool();    // 更新左侧或 PC 池子样式
-            saveToLocal();
-            closeEligibleSelector();
-          };
-        }
-
-        container.appendChild(btn);
+  list.forEach(char => {
+    const btn = document.createElement('button');
+    btn.className = 'mobile-char-btn';
+    btn.innerHTML = `<img src="${char.img}" title="${char.baseName||char.name}">`;
+    btn.onclick = () => {
+      setSlotImage(slot, {
+        name: char.name,
+        img: char.img,
+        baseName: char.baseName,
+        role
       });
+      usedNames.add(char.name);
+      slotMap.set(char.name, slot);
+      renderPool();
+      saveToLocal();
+      closeEligibleSelector();
+    };
+    box.appendChild(btn);
+  });
 
-      // 显示弹窗
-      document.getElementById('overlay').style.display = 'block';
-      document.getElementById('eligibleSelector').style.display = 'block';
-    }
+  document.getElementById('overlay'        ).style.display = 'block';
+  document.getElementById('eligibleSelector').style.display = 'block';
+}
+
 
     window.addEventListener("DOMContentLoaded", () => {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
