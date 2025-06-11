@@ -999,9 +999,14 @@ function toggleFilterGeneric(scope, type, val){
       renderPool();
     }
     function resetFilters() {
+      // ➊ 清状态
       activeFilters.rarity = null;
       activeFilters.attribute = null;
       activeFilters.roleType = null;
+      // ➋ **清高亮**（新增）
+      document.querySelectorAll('#mainFilters button.active')
+              .forEach(btn => btn.classList.remove('active'));
+    // ➌ 重新渲染
       renderPool();
     }
 
