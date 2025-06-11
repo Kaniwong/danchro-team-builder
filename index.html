@@ -608,6 +608,33 @@
         /* 不影响点击事件 */
       }
     }
+
+/* ✅ 让弹窗里的筛选区始终可见 */
+#eligibleFiltersContainer{
+  display:flex!important;
+  flex-direction:column;
+  gap:8px;
+  border: none;
+}
+
+
+    /* 弹窗筛选行的按钮高亮色 */
+#eligibleFiltersContainer button.active {
+  background: var(--primary);
+  color:#fff;
+}
+
+/* 让过滤行之间有点间距，看着不堆 */
+#eligibleFiltersContainer .filter-row:not(:last-child) {
+  margin-bottom: 8px;
+}
+
+/* 让按钮别太窄 */
+#eligibleFiltersContainer .filter-buttons button {
+  min-width: 48px;
+}
+
+
   </style>
   <script>
     const i18n = {
@@ -648,6 +675,7 @@
         roleType_DEFENSE: "防御",
         roleType_SPEED: "速度",
         roleType_SUPPORT: "辅助",
+        allLabel: "全部",
       },
       en: {
         title: "Team Builder",
@@ -686,6 +714,7 @@
         roleType_DEFENSE: "Defense",
         roleType_SPEED: "Speed",
         roleType_SUPPORT: "Support",
+        allLabel: "All", 
       },
       ja: {
         title: "編成ツール",
@@ -724,6 +753,7 @@
         roleType_SUPPORT: "サポート",
         clearConfirm: name => `${name} をクリアしますか？`,
         deleteConfirm: name => `${name} を削除しますか？`,
+        allLabel: "すべて",
       }
     };
 
@@ -746,69 +776,35 @@
   </select>
   <h1>角色编队工具</h1> -->
 
-  <div id="filters" class="filters">
-    <div class="filters-header">
-      <strong>筛选：</strong>
-      <button class="toggle-filters" data-t-key="expandFilter" onclick="toggleFilterPanel()">展开筛选</button>
-    </div>
-    <div class="filters-body">
-      <div class="filter-row">
-        <span class="filter-label" data-t-key="rarity">稀有度：</span>
-        <div class="filter-buttons">
-          <button onclick="toggleFilter('rarity', 'SR')" data-type="rarity" data-value="SR">SR</button>
-          <button onclick="toggleFilter('rarity', 'SSR')" data-type="rarity" data-value="SSR">SSR</button>
-          <button onclick="toggleFilter('rarity', 'UR')" data-type="rarity" data-value="UR">UR</button>
-        </div>
-      </div>
-      <div class="filter-row">
-        <span class="filter-label" data-t-key="attribute">属性：</span>
-        <div class="filter-buttons">
-          <button onclick="toggleFilter('attribute', 'FIRE')" data-type="attribute" data-value="FIRE"></button>
-          <button onclick="toggleFilter('attribute', 'WIND')" data-type="attribute" data-value="WIND"></button>
-          <button onclick="toggleFilter('attribute', 'EARTH')" data-type="attribute" data-value="EARTH"></button>
-          <button onclick="toggleFilter('attribute', 'ELECTRIC')" data-type="attribute" data-value="ELECTRIC"></button>
-          <button onclick="toggleFilter('attribute', 'WATER')" data-type="attribute" data-value="WATER"></button>
-        </div>
-      </div>
-      <div class="filter-row">
-        <span class="filter-label" data-t-key="roleType">定位：</span>
-        <div class="filter-buttons">
-          <button onclick="toggleFilter('roleType', 'ATTACK')" data-type="roleType" data-value="ATTACK"></button>
-          <button onclick="toggleFilter('roleType', 'DEFENSE')" data-type="roleType" data-value="DEFENSE"></button>
-          <button onclick="toggleFilter('roleType', 'SPEED')" data-type="roleType" data-value="SPEED"></button>
-          <button onclick="toggleFilter('roleType', 'SUPPORT')" data-type="roleType" data-value="SUPPORT"></button>
-        </div>
-      </div>
-      <div class="filter-row">
-        <div class="filter-buttons full-width">
-          <button onclick="resetFilters()" data-t-key="reset">重置</button>
-          <button onclick="openEligibleSelector()" data-t-key="eligible">🎮 设置可上场角色</button>
-        </div>
-      </div>
-    </div>
+<!-- ▶︎ 主筛选 + 折叠外壳 -->
+<div id="filters" class="filters">
+  <div class="filters-header">
+    <strong data-t-key="filterLabel"></strong>
+    <button class="toggle-filters"
+            data-t-key="expandFilter"
+            onclick="toggleFilterPanel()"></button>
   </div>
+  <!-- 真正渲染按钮的容器 -->
+  <div id="mainFilters" class="filters-body"></div>
+</div>
 
 
-  <!-- <div class="pool-group">
-    <h2>冒险者</h2>
-    <div class="character-pool" id="adventurers"></div>
-  </div>
-
-  <div class="pool-group">
-    <h2>支援者</h2>
-    <div class="character-pool" id="supporters"></div>
-  </div> -->
   <div id="overlay" onclick="closeEligibleSelector()"></div>
+<div id="eligibleSelector"
+     style="display:none; background:#fff; border:1px solid #ccc;
+            padding:10px; position:fixed; top:10%; left:50%;
+            transform:translateX(-50%); max-height:80vh; overflow:auto; z-index:999;">
 
-  <div id="eligibleSelector"
-    style="display:none; background:#fff; border:1px solid #ccc; padding:10px; position:fixed; top:10%; left:50%; transform:translateX(-50%); max-height:80vh; overflow:auto; z-index:999;">
-    <h3 data-t-key="setupYourPool">设置你的角色池</h3>
-    <div id="eligibleList"></div>
-    <!-- <div style="margin-top: 15px;">
-      <button onclick="saveEligible()" data-t-key="save">✅ 保存</button>
-      <button onclick="closeEligibleSelector()" data-t-key="close">❌ 关闭</button>
-    </div> -->
-  </div>
+  <h3 data-t-key="setupYourPool">设置你的角色池</h3>
+
+
+<div id="eligibleFiltersContainer" class="filters-body"></div>
+
+  <!-- 角色网格 -->
+  <div id="eligibleList"></div>
+</div>
+
+
 
 
   <div id="main-layout">
@@ -857,10 +853,114 @@
     const availableTeamNumbers = [];
     const usedNames = new Set();
     const slotMap = new Map();
-    const activeFilters = { rarity: null, attribute: null, roleType: null };
     const rarityOrder = ['UR', 'SSR', 'SR', 'R'];
     let pendingInsert = null;
     let selectorMode = 'eligible'; // 或 'slot'
+     const activeFilters = { rarity: null, attribute: null, roleType: null };
+    /* === 弹窗内部筛选状态 === */
+    const eligibleFilters = {
+      role: 'all',        // all | adventurer | supporter
+      rarity: null,
+      attribute: null,
+      roleType: null,
+    };
+
+    /************* ① 配置：定义所有筛选选项 *****************/
+const FILTER_CONFIG = {
+  role: {
+    popupOnly: true,                       // ← 新增
+    labelKey: 'filterLabel',
+    buttons: [
+      { value: 'all',        textKey: 'allLabel'      },
+      { value: 'adventurer', textKey: 'adventurerLabel' },
+      { value: 'supporter',  textKey: 'supporterLabel' }
+    ],
+  },
+  rarity: {                // 仍然用固定文本
+    labelKey: 'rarity',
+    buttons: ['SR','SSR','UR'].map(v=>({value:v, text:v}))
+  },
+
+  attribute: {             // ➜ 使用翻译键
+    labelKey: 'attribute',
+    buttons: ['FIRE','WIND','EARTH','ELECTRIC','WATER']
+      .map(v=>({value:v, textKey:`attribute_${v}`}))
+  },
+
+  roleType: {              // ➜ 使用翻译键
+    labelKey: 'roleType',
+    buttons: [
+      { value:'ATTACK',  textKey:'roleType_ATTACK'  },
+      { value:'DEFENSE', textKey:'roleType_DEFENSE' },
+      { value:'SPEED',   textKey:'roleType_SPEED'   },
+      { value:'SUPPORT', textKey:'roleType_SUPPORT' },
+    ],
+  },
+};
+
+/************* ② 渲染函数：任意容器、任意 scope *********/
+function renderFilterUI(targetId, scope){
+  const isMain = scope === 'main';
+  const container = document.getElementById(targetId);
+  container.innerHTML = '';                              // 清空
+
+  Object.entries(FILTER_CONFIG).forEach(([group, cfg])=>{
+    if (cfg.popupOnly && isMain) return;   // 主界面跳过 role 行
+    const row = document.createElement('div'); row.className = 'filter-row';
+
+    // label
+    const label = document.createElement('span');
+    label.className='filter-label';
+    label.dataset.tKey = cfg.labelKey;
+    label.textContent = t(cfg.labelKey);
+    row.appendChild(label);
+
+    // buttons
+    const btnBox = document.createElement('div'); btnBox.className='filter-buttons';
+    cfg.buttons.forEach(btnCfg=>{
+      const btn=document.createElement('button');
+      btn.textContent = btnCfg.textKey ? t(btnCfg.textKey) : btnCfg.text;
+      if (btnCfg.textKey) btn.dataset.tKey = btnCfg.textKey;
+      btn.dataset.group = group;
+      btn.dataset.value = btnCfg.value;
+      btn.onclick = () => toggleFilterGeneric(scope, group, btnCfg.value);
+      btnBox.appendChild(btn);
+    });
+    row.appendChild(btnBox);
+    container.appendChild(row);
+  });
+
+  // 额外行：重置 / Eligible 只在主界面出现
+  if(isMain){
+    const extra = document.createElement('div'); extra.className='filter-row';
+    extra.innerHTML = `
+      <div class="filter-buttons full-width">
+        <button onclick="resetFilters()" data-t-key="reset">${t('reset')}</button>
+        <button onclick="openEligibleSelector()" data-t-key="eligible">${t('eligible')}</button>
+      </div>`;
+    container.appendChild(extra);
+  }
+}
+
+/************* ③ 通用切换函数（替换以前两个函数） *********/
+function toggleFilterGeneric(scope, type, val){
+  const cfg = scope==='main'
+    ? { state: activeFilters, render: renderPool,  selector:'#mainFilters' }
+    : { state: eligibleFilters, render: renderEligibleList, selector:'#eligibleFiltersContainer' };
+
+  cfg.state[type] = cfg.state[type]===val ? null : val;
+
+  document.querySelectorAll(`${cfg.selector} [data-group="${type}"]`)
+          .forEach(btn=>{
+            btn.classList.toggle(
+              'active',
+              btn.dataset.value === cfg.state[type]
+            );
+          });
+
+  cfg.render();
+}
+
 
     // 判断一个角色是否应该显示
     function filterFunc(char) {
@@ -878,12 +978,14 @@
       return (a.baseName || a.name).localeCompare(b.baseName || b.name, currentLang);
     }
 
-    window.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("languageSelector").value = currentLang; // ✅ 初始化选中项
-      renderPool();
-      loadFromLocal();
-      applyTranslations();
-    });
+   document.addEventListener('DOMContentLoaded', ()=>{
+  renderFilterUI('mainFilters','main');
+  renderFilterUI('eligibleFiltersContainer','eligible');
+  renderPool();
+  loadFromLocal();
+  document.getElementById('languageSelector').value = currentLang; 
+  applyTranslations();
+});
 
     function toggleFilter(type, value) {
       const prevValue = activeFilters[type];
@@ -1457,55 +1559,83 @@
 
     let eligibleCharacters = new Set(JSON.parse(localStorage.getItem("eligibleCharacters") || "[]"));
 
-    function openEligibleSelector() {
-      const container = document.getElementById("eligibleList");
-      if (!container) {
-        // alert("找不到 eligibleList 元素，请检查 HTML 是否正确插入！");
-        alert(t("eligibleListMissing"));
-        return;
-      }
-      container.innerHTML = "";
-      const allChars = [...(characters?.adventurers || []), ...(characters?.supporters || [])];
-      allChars.sort((a, b) => (a.baseName || a.name).localeCompare(b.baseName || b.name, 'zh'));
+//     function setEligibleRole(role){
+//   eligibleFilters.role = role;
+//   document.querySelectorAll('#eligibleFilters [data-group="role"]')
+//           .forEach(b=>b.classList.toggle('active', b.dataset.role===role));
+//   renderEligibleList();
+// }
 
-      allChars.forEach(char => {
-        const label = document.createElement("label");
-        label.style.display = "flex";
-        label.style.alignItems = "center";
-        label.style.gap = "6px";
+// function toggleEligibleFilter(type,val){
+//   eligibleFilters[type] = eligibleFilters[type]===val ? null : val;
 
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = char.name;
-        checkbox.checked = eligibleCharacters.has(char.name);
-        checkbox.checked = eligibleCharacters.has(char.name);
-        // ✅ 自动保存选中状态
-        checkbox.addEventListener("change", () => {
-          if (checkbox.checked) eligibleCharacters.add(char.name);
-          else eligibleCharacters.delete(char.name);
-          // 写回 localStorage
-          localStorage.setItem(
-            "eligibleCharacters",
-            JSON.stringify(Array.from(eligibleCharacters))
-          );
-          renderPool();   // 立即刷新左侧池子状态
-        });
+//   /* 只刷新同组按钮的高亮 */
+//   document.querySelectorAll(`#eligibleFilters [data-group="${type}"]`)
+//           .forEach(btn=>{
+//             btn.classList.toggle('active',
+//               (btn.textContent===val || btn.dataset.value===val) && eligibleFilters[type]);
+//           });
 
-        const img = document.createElement("img");
-        img.src = char.img;
-        img.alt = char.name;
-        img.style.width = "80px";
-        img.style.height = "80px";
+//   renderEligibleList();
+// }
 
-        label.appendChild(checkbox);
-        label.appendChild(img);
-        // label.appendChild(document.createTextNode(char.baseName || char.name));
-        container.appendChild(label);
-      });
+function eligibleFilterFunc(c){
+  if(eligibleFilters.role!=='all' && c.role!==eligibleFilters.role) return false;
+  if(eligibleFilters.rarity   && c.rarity   !== eligibleFilters.rarity)   return false;
+  if(eligibleFilters.attribute&& c.attribute!== eligibleFilters.attribute) return false;
+  if(eligibleFilters.roleType && c.roleType !== eligibleFilters.roleType)  return false;
+  return true;
+}
 
-      document.getElementById("overlay").style.display = "block";
-      document.getElementById("eligibleSelector").style.display = "block";
-    }
+function renderEligibleList(){
+  const box=document.getElementById('eligibleList');
+  box.innerHTML='';
+
+  const arr=[
+    ...(eligibleFilters.role!=='supporter'?  characters.adventurers:[]),
+    ...(eligibleFilters.role!=='adventurer'? characters.supporters :[])
+  ].filter(eligibleFilterFunc).sort(sortFunc);
+
+  arr.forEach(char=>{
+    const label=document.createElement('label');
+    label.style.display='flex'; label.style.alignItems='center'; label.style.gap='6px';
+
+    const cb=document.createElement('input');
+    cb.type='checkbox'; cb.value=char.name;
+    cb.checked=eligibleCharacters.has(char.name);
+    cb.onchange=()=>{ cb.checked?eligibleCharacters.add(char.name):eligibleCharacters.delete(char.name);
+                      localStorage.setItem('eligibleCharacters',JSON.stringify([...eligibleCharacters]));
+                      renderPool(); };
+
+    const img=new Image(); img.src=char.img; img.width=80; img.height=80;
+    label.append(cb,img); box.append(label);
+  });
+}
+
+// function openEligibleSelector(){
+//   Object.assign(eligibleFilters,{role:'all',rarity:null,attribute:null,roleType:null});
+//   document.querySelectorAll('#eligibleFilters button').forEach(b=>b.classList.remove('active'));
+//   document.querySelector('#eligibleFilters [data-role="all"]').classList.add('active');
+//   renderEligibleList();
+//   document.getElementById('overlay').style.display='block';
+//   document.getElementById('eligibleSelector').style.display='block';
+// }
+function openEligibleSelector(){
+  Object.assign(eligibleFilters,{role:'all',rarity:null,attribute:null,roleType:null});
+
+  // 清除所有激活样式
+  document.querySelectorAll('#eligibleFiltersContainer button.active')
+          .forEach(b=>b.classList.remove('active'));
+
+  // 默认点亮 “全部”
+  document.querySelector('#eligibleFiltersContainer [data-value="all"]')
+          .classList.add('active');
+
+  renderEligibleList();
+  document.getElementById('overlay').style.display='block';
+  document.getElementById('eligibleSelector').style.display='block';
+}
+
 
     function closeEligibleSelector() {
       document.getElementById("overlay").style.display = "none";
@@ -1520,15 +1650,24 @@
     //   closeEligibleSelector();
     //   if (typeof renderPool === 'function') renderPool();
     // }
-    function toggleFilterPanel() {
-      const filters = document.getElementById("filters");
-      filters.classList.toggle("show");
-      const btn = filters.querySelector(".toggle-filters");
-      // btn.textContent = filters.classList.contains("show") ? "收起筛选" : "展开筛选";
-      btn.textContent = filters.classList.contains("show")
-        ? t("collapseFilter")
-        : t("expandFilter");
+    // function toggleFilterPanel() {
+    //   const filters = document.getElementById("filters");
+    //   filters.classList.toggle("show");
+    //   const btn = filters.querySelector(".toggle-filters");
+    //   // btn.textContent = filters.classList.contains("show") ? "收起筛选" : "展开筛选";
+    //   btn.textContent = filters.classList.contains("show")
+    //     ? t("collapseFilter")
+    //     : t("expandFilter");
+    // }
+    function toggleFilterPanel(){
+      const box = document.getElementById('filters');
+      box.classList.toggle('show');
+      const btn = box.querySelector('.toggle-filters');
+      btn.textContent = box.classList.contains('show')
+        ? t('collapseFilter')
+        : t('expandFilter');
     }
+
     // function openSlotSelector(slot) {
     //   const role = slot.dataset.type;                     // "adventurer" or "supporter"
     //   const titleKey = role === 'adventurer'
@@ -1656,11 +1795,17 @@
       return typeof str === "function" ? str(...args) : str;
     }
 
-    function changeLanguage(lang) {
+    function changeLanguage(lang){
       currentLang = lang;
-      localStorage.setItem("lang", lang);
+      localStorage.setItem('lang', lang);
+
+      // ① 同步下拉框选中项
+      document.getElementById('languageSelector').value = lang;
+
+      // ② 重新翻译现有文本
       applyTranslations();
     }
+
 
     function applyTranslations() {
       const missing = [];
@@ -1733,22 +1878,27 @@
       // setTextAll("clearConfirm");
       // setTextAll("deleteConfirm");
       // ⇒ 所有属性筛选按钮
-      document
-        .querySelectorAll('button[data-type="attribute"]')
-        .forEach(btn => {
-          const val = btn.dataset.value;               // e.g. "FIRE"
-          const key = `attribute_${val}`;              // 对应 i18n 里的 attribute_FIRE
-          btn.textContent = t(key);
-        });
+      // document
+      //   .querySelectorAll('button[data-type="attribute"]')
+      //   .forEach(btn => {
+      //     const val = btn.dataset.value;               // e.g. "FIRE"
+      //     const key = `attribute_${val}`;              // 对应 i18n 里的 attribute_FIRE
+      //     btn.textContent = t(key);
+      //   });
 
-      // ⇒ 所有定位筛选按钮
-      document
-        .querySelectorAll('button[data-type="roleType"]')
-        .forEach(btn => {
-          const val = btn.dataset.value;              // e.g. "ATTACK"
-          const key = `roleType_${val}`;              // 对应 i18n 里的 roleType_ATTACK
-          btn.textContent = t(key);
-        });
+      // // ⇒ 所有定位筛选按钮
+      // document
+      //   .querySelectorAll('button[data-type="roleType"]')
+      //   .forEach(btn => {
+      //     const val = btn.dataset.value;              // e.g. "ATTACK"
+      //     const key = `roleType_${val}`;              // 对应 i18n 里的 roleType_ATTACK
+      //     btn.textContent = t(key);
+      //   });
+       // 统一刷新任何标有 data-t-key 的元素（包含动态插入的按钮）
+      document.querySelectorAll('[data-t-key]').forEach(el=>{
+        const k = el.dataset.tKey;
+        if(i18n[currentLang][k]) el.textContent = t(k);
+      });
 
       // 🚨 输出缺失项
       if (missing.length > 0) {
