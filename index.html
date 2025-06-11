@@ -1623,6 +1623,16 @@ function renderEligibleList(){
 function openEligibleSelector(){
   Object.assign(eligibleFilters,{role:'all',rarity:null,attribute:null,roleType:null});
 
+    const titleEl = document.querySelector('#eligibleSelector h3');
+  titleEl.dataset.tKey = 'setupYourPool';        // 让多语言系统识别
+  titleEl.textContent = t('setupYourPool');
+
+   /* 恢复 role 行 */
+  const roleRow = document.querySelector(
+    '#eligibleFiltersContainer .filter-row [data-group="role"]'
+  ).closest('.filter-row');
+  roleRow.style.display = '';                // ← 新增
+  
   // 清除所有激活样式
   document.querySelectorAll('#eligibleFiltersContainer button.active')
           .forEach(b=>b.classList.remove('active'));
@@ -1725,6 +1735,26 @@ function openEligibleSelector(){
 
     function openSlotSelector(slot) {
   const role = slot.dataset.type;                  // adventurer / supporter
+  /* 1️⃣ 让弹窗只过滤当前 role */
+  Object.assign(eligibleFilters, {            // ← 新增
+    role, rarity:null, attribute:null, roleType:null
+  });
+
+  /* 2️⃣ 高亮对应按钮、隐藏整行 role‐filter */
+  const roleRow = document.querySelector(
+    '#eligibleFiltersContainer .filter-row [data-group="role"]'
+  ).closest('.filter-row');
+
+  // 先全部清除激活
+  document.querySelectorAll('#eligibleFiltersContainer [data-group="role"]')
+          .forEach(b=>b.classList.remove('active'));
+
+  // 点亮当前角色类型
+  document.querySelector(`#eligibleFiltersContainer [data-value="${role}"]`)
+          .classList.add('active');
+
+  // 隐藏这一行
+  roleRow.style.display = 'none';             // ← 新增
   const row  = slot.closest('.team-row');
   const idx  = Array.from(row.children).indexOf(slot);
   const pair = row.children[role === 'adventurer' ? idx + 1 : idx - 1];
@@ -1733,16 +1763,29 @@ function openEligibleSelector(){
   const pairDisplay = pair.querySelector('img')?.getAttribute('alt')?.toLowerCase();
 
   // 标题
-  document.querySelector('#eligibleSelector h3')
-          .textContent = t(role === 'adventurer' ? 'adventurerLabel' : 'supporterLabel');
+const titleEl = document.querySelector('#eligibleSelector h3');
+// ①a 先移除 data-t-key，避免 applyTranslations() 把它翻回去
+titleEl.removeAttribute('data-t-key');
+
+// ①b 根据格子类型显示对应标题
+titleEl.textContent = t(role === 'adventurer'
+  ? 'adventurerLabel'
+  : 'supporterLabel');
 
   // 过滤：全局筛选 + 未被 usedNames + 显示名不能等于 pairDisplay
-  const list = characters[role + 's']
-      .filter(c =>
-        filterFunc(c) &&
-        !usedNames.has(c.name) &&
-        ( (c.baseName || c.name).toLowerCase() !== pairDisplay )
-      )
+  // const list = characters[role + 's']
+  //     .filter(c =>
+  //       filterFunc(c) &&
+  //       !usedNames.has(c.name) &&
+  //       ( (c.baseName || c.name).toLowerCase() !== pairDisplay )
+  //     )
+   const list = characters[role + 's']
+     .filter(c =>
+       (eligibleCharacters.size === 0 || eligibleCharacters.has(c.name)) &&  // ✅ 可登场
+       eligibleFilterFunc(c) &&                                             // ✅ 符合弹窗筛选
+       !usedNames.has(c.name) &&
+       ((c.baseName || c.name).toLowerCase() !== pairDisplay)
+     )
       .sort(sortFunc);
 
   const box = document.getElementById('eligibleList');
